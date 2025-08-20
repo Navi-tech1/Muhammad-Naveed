@@ -1,0 +1,79 @@
+{% comment %}
+<div class="placeholder">Select a product</div>
+{% endif %}
+</div>
+{% endfor %}
+</div>
+</div>
+
+
+<!-- Modal Root -->
+<dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
+<form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
+<div class="pv-content">
+<div class="pv-media"></div>
+<div class="pv-info">
+<h3 class="pv-title"></h3>
+<div class="pv-price"></div>
+<div class="pv-desc"></div>
+<form class="pv-form">
+<div class="pv-options"></div>
+<input type="hidden" name="id" class="pv-variant-id" />
+<button type="submit" class="pv-add">Add to cart</button>
+</form>
+<div class="pv-status" role="status" aria-live="polite"></div>
+</div>
+</div>
+</dialog>
+
+
+<style>
+#section-{{ section.id }} { padding: 32px 16px; }
+#section-{{ section.id }} .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (min-width: 768px){ #section-{{ section.id }} .grid { grid-template-columns: repeat(3, 1fr); gap: 20px; } }
+.card { border: 1px solid rgba(0,0,0,.08); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.card-body { padding: 12px; display:flex; align-items:center; justify-content:space-between; gap: 8px; }
+.card-title { margin: 0; font-size: 16px; line-height: 1.3; }
+.card-price { font-weight: 600; }
+.quick-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid currentColor; background: transparent; }
+.placeholder { border: 1px dashed rgba(0,0,0,.2); border-radius: 12px; padding: 40px; text-align:center; color: #666; }
+
+
+.pv-modal { width: min(900px, 92vw); border: none; border-radius: 16px; padding: 0; }
+.pv-modal::backdrop { background: rgba(0,0,0,.45); }
+.pv-content { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+@media (min-width: 768px){ .pv-content { grid-template-columns: 1fr 1fr; padding: 24px; gap: 24px; } }
+.pv-close { position: absolute; inset: 8px 8px auto auto; border: none; background: #fff; border-radius: 999px; width: 36px; height: 36px; font-size: 20px; }
+.pv-media img { width: 100%; height: auto; border-radius: 12px; }
+.pv-title { margin: 0 0 8px; font-size: 22px; }
+.pv-price { font-weight: 700; margin-bottom: 8px; }
+.pv-desc { opacity: .9; font-size: 14px; margin-bottom: 12px; }
+.pv-options { display: grid; gap: 8px; margin-bottom: 12px; }
+.pv-add { padding: 12px 16px; border-radius: 8px; border: 1px solid currentColor; }
+.pv-status { margin-top: 8px; font-size: 14px; }
+</style>
+
+
+<script>
+(function(){
+const root = document.getElementById('section-{{ section.id }}');
+const modal = root.querySelector('.pv-modal');
+const mediaEl = modal.querySelector('.pv-media');
+const titleEl = modal.querySelector('.pv-title');
+const priceEl = modal.querySelector('.pv-price');
+const descEl = modal.querySelector('.pv-desc');
+const optionsEl = modal.querySelector('.pv-options');
+const variantInput = modal.querySelector('.pv-variant-id');{% comment %}
+Product Grid Section with Quick View
+{% endcomment %}
+
+<section id="section-{{ section.id }}">
+  <div class="container">
+    <div class="grid">
+      {% for product in collections[section.settings.collection].products %}
+        <!-- Your product grid items here -->
+      {% endfor %}
+    </div>
+  </div>
+
+// ...existing code...
