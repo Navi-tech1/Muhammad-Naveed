@@ -5,73 +5,71 @@ Custom Banner Section — built from scratch
 - Vanilla CSS animations; no jQuery
 {% endcomment %}
 <section id="section-{{ section.id }}" class="custom-banner">
-<div class="banner-inner">
-{% if section.settings.heading != blank %}
-<h1 class="banner-heading">{{ section.settings.heading }}</h1>
-{% endif %}
-{% if section.settings.subheading != blank %}
-<p class="banner-subheading">{{ section.settings.subheading }}</p>
-{% endif %}
+  <div class="banner-inner">
+    {% if section.settings.heading != blank %}
+      <h1 class="banner-heading">{{ section.settings.heading }}</h1>
+    {% endif %}
+    {% if section.settings.subheading != blank %}
+      <p class="banner-subheading">{{ section.settings.subheading }}</p>
+    {% endif %}
 
+    <div class="banner-ctas">
+      {% for block in section.blocks %}
+        <a
+          class="banner-btn{% if section.settings.button_animation != 'none' %} anim-{{ section.settings.button_animation }}{% endif %}"
+          href="{{ block.settings.link }}"
+          aria-label="{{ block.settings.label }}"
+        >
+          {{ block.settings.label }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
 
-<div class="banner-ctas">
-{% for block in section.blocks %}
-<a
-class="banner-btn{{ section.settings.button_animation != 'none' ? ' anim-' | append: section.settings.button_animation : '' }}"
-href="{{ block.settings.link }}"
->
-{{ block.settings.label }}
-</a>
-{% endfor %}
-</div>
-</div>
+  <style>
+    #section-{{ section.id }} { padding: 64px 16px; text-align: center; }
+    #section-{{ section.id }} .banner-inner { max-width: 1100px; margin: 0 auto; }
+    #section-{{ section.id }} .banner-heading { font-size: clamp(28px, 5vw, 56px); margin: 0 0 8px; }
+    #section-{{ section.id }} .banner-subheading { font-size: clamp(16px, 2.5vw, 20px); opacity: .9; margin: 0 0 24px; }
+    #section-{{ section.id }} .banner-ctas { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    #section-{{ section.id }} .banner-btn { padding: 12px 20px; border-radius: 999px; border: 1px solid currentColor; display: inline-block; }
 
-
-<style>
-#section-{{ section.id }} { padding: 64px 16px; text-align: center; }
-#section-{{ section.id }} .banner-inner { max-width: 1100px; margin: 0 auto; }
-#section-{{ section.id }} .banner-heading { font-size: clamp(28px, 5vw, 56px); margin: 0 0 8px; }
-#section-{{ section.id }} .banner-subheading { font-size: clamp(16px, 2.5vw, 20px); opacity: .9; margin: 0 0 24px; }
-#section-{{ section.id }} .banner-ctas { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-#section-{{ section.id }} .banner-btn { padding: 12px 20px; border-radius: 999px; border: 1px solid currentColor; display: inline-block; }
-
-
-/* Simple button animations */
-@keyframes pulse { 0%{ transform: scale(1);} 50%{ transform: scale(1.05);} 100%{ transform: scale(1);} }
-@keyframes floaty { 0%{ transform: translateY(0);} 50%{ transform: translateY(-4px);} 100%{ transform: translateY(0);} }
-.anim-pulse { animation: pulse 2s infinite; }
-.anim-float { animation: floaty 3s ease-in-out infinite; }
-</style>
-
+    /* Simple button animations */
+    @keyframes pulse { 0%{ transform: scale(1);} 50%{ transform: scale(1.05);} 100%{ transform: scale(1);} }
+    @keyframes floaty { 0%{ transform: translateY(0);} 50%{ transform: translateY(-4px);} 100%{ transform: translateY(0);} }
+    .anim-pulse { animation: pulse 2s infinite; }
+    .anim-float { animation: floaty 3s ease-in-out infinite; }
+  </style>
+</section>
 
 {% schema %}
 {
-"name": "Custom Banner",
-"settings": [
-{ "type": "text", "id": "heading", "label": "Heading", "default": "Your Banner Heading" },
-{ "type": "text", "id": "subheading", "label": "Subheading", "default": "A concise supporting line." },
-{
-"type": "select", "id": "button_animation", "label": "Button animation",
-"options": [
-{"value": "none", "label": "None"},
-{"value": "pulse", "label": "Pulse"},
-{"value": "float", "label": "Float"}
-],
-"default": "pulse"
-}
-],
-"blocks": [
-{
-"type": "button",
-"name": "Button",
-"settings": [
-{ "type": "text", "id": "label", "label": "Label", "default": "Shop now" },
-{ "type": "url", "id": "link", "label": "Link" }
-]
-}
-],
-"max_blocks": 2,
-"presets": [ { "name": "Custom Banner", "category": "Custom" } ]
+  "name": "Custom Banner",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Your Banner Heading" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "A concise supporting line." },
+    {
+      "type": "select", "id": "button_animation", "label": "Button animation",
+      "options": [
+        {"value": "none", "label": "None"},
+        {"value": "pulse", "label": "Pulse"},
+        {"value": "float", "label": "Float"}
+      ],
+      "default": "pulse"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "button",
+      "name": "Button",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Label", "default": "Shop now" },
+        { "type": "url", "id": "link", "label": "Link" }
+      ]
+    }
+  ],
+  "max_blocks": 2,
+  "presets": [ { "name": "Custom Banner", "category": "Custom" }
+  ]
 }
 {% endschema %}
-</section>

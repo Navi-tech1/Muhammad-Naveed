@@ -1,31 +1,50 @@
 {% comment %}
-<div class="placeholder">Select a product</div>
-{% endif %}
-</div>
-{% endfor %}
-</div>
-</div>
+Product Grid Section with Quick View
+{% endcomment %}
 
+<section id="section-{{ section.id }}">
+  <div class="container">
+    <div class="grid">
+      {% if collections[section.settings.collection] and collections[section.settings.collection].products.size > 0 %}
+        {% for product in collections[section.settings.collection].products %}
+          <div class="card">
+            <a href="{{ product.url }}">
+              <img src="{{ product.featured_image | img_url: '400x' }}" alt="{{ product.title }}" />
+            </a>
+            <div class="card-body">
+              <div>
+                <h3 class="card-title">{{ product.title }}</h3>
+                <div class="card-price">{{ product.price | money }}</div>
+              </div>
+              <button class="quick-btn" data-product="{{ product.id }}" data-desc="{{ product.description | strip_html | escape }}" aria-label="Quick view">👁️</button>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="placeholder">Select a product</div>
+      {% endif %}
+    </div>
+  </div>
 
-<!-- Modal Root -->
-<dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
-<form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
-<div class="pv-content">
-<div class="pv-media"></div>
-<div class="pv-info">
-<h3 class="pv-title"></h3>
-<div class="pv-price"></div>
-<div class="pv-desc"></div>
-<form class="pv-form">
-<div class="pv-options"></div>
-<input type="hidden" name="id" class="pv-variant-id" />
-<button type="submit" class="pv-add">Add to cart</button>
-</form>
-<div class="pv-status" role="status" aria-live="polite"></div>
-</div>
-</div>
-</dialog>
-
+  <!-- Modal Root -->
+  <dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
+    <form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
+    <div class="pv-content">
+      <div class="pv-media"></div>
+      <div class="pv-info">
+        <h3 class="pv-title"></h3>
+        <div class="pv-price"></div>
+        <div class="pv-desc"></div>
+        <form class="pv-form">
+          <div class="pv-options"></div>
+          <input type="hidden" name="id" class="pv-variant-id" />
+          <button type="submit" class="pv-add">Add to cart</button>
+        </form>
+        <div class="pv-status" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </dialog>
+</section>
 
 <style>
 #section-{{ section.id }} { padding: 32px 16px; }
@@ -37,7 +56,6 @@
 .card-price { font-weight: 600; }
 .quick-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid currentColor; background: transparent; }
 .placeholder { border: 1px dashed rgba(0,0,0,.2); border-radius: 12px; padding: 40px; text-align:center; color: #666; }
-
 
 .pv-modal { width: min(900px, 92vw); border: none; border-radius: 16px; padding: 0; }
 .pv-modal::backdrop { background: rgba(0,0,0,.45); }
@@ -53,27 +71,30 @@
 .pv-status { margin-top: 8px; font-size: 14px; }
 </style>
 
-
 <script>
 (function(){
-const root = document.getElementById('section-{{ section.id }}');
-const modal = root.querySelector('.pv-modal');
-const mediaEl = modal.querySelector('.pv-media');
-const titleEl = modal.querySelector('.pv-title');
-const priceEl = modal.querySelector('.pv-price');
-const descEl = modal.querySelector('.pv-desc');
-const optionsEl = modal.querySelector('.pv-options');
-const variantInput = modal.querySelector('.pv-variant-id');{% comment %}
-Product Grid Section with Quick View
-{% endcomment %}
+  const root = document.getElementById('section-{{ section.id }}');
+  const modal = root.querySelector('.pv-modal');
+  const mediaEl = modal.querySelector('.pv-media');
+  const titleEl = modal.querySelector('.pv-title');
+  const priceEl = modal.querySelector('.pv-price');
+  const descEl = modal.querySelector('.pv-desc');
+  const optionsEl = modal.querySelector('.pv-options');
+  const variantInput = modal.querySelector('.pv-variant-id');
 
-<section id="section-{{ section.id }}">
-  <div class="container">
-    <div class="grid">
-      {% for product in collections[section.settings.collection].products %}
-        <!-- Your product grid items here -->
-      {% endfor %}
-    </div>
-  </div>
+  root.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const card = btn.closest('.card');
+      titleEl.textContent = card.querySelector('.card-title').textContent;
+      priceEl.textContent = card.querySelector('.card-price').textContent;
+      mediaEl.innerHTML = card.querySelector('img').outerHTML;
+      descEl.textContent = btn.getAttribute('data-desc') || "";
+      modal.showModal();
+    });
+  });
 
-// ...existing code...
+  modal.querySelector('.pv-close').addEventListener('click', function(){
+    modal.close();
+  });
+})();
+</script>
