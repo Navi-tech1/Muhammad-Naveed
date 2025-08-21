@@ -1,7 +1,7 @@
 {% comment %}
-Product Grid (6) with Quick View
+Product Grid (6) with Hover Info
 - Choose 6 products individually
-- Hover effect on product card
+- Hover effect on product card: show product info overlay
 - Responsive grid: 2 cols mobile, 3 cols desktop
 {% endcomment %}
 
@@ -20,51 +20,27 @@ Product Grid (6) with Quick View
               />
             {% endif %}
             <div class="hover-overlay">
-              <button 
-                class="quick-btn" 
-                type="button" 
-                aria-label="Quick view for {{ prod.title }}"
-                data-handle="{{ prod.handle }}" 
-                data-desc="{{ prod.description | strip_html | escape }}"
-              >
-                Quick View
-              </button>
+              <div class="hover-info">
+                <h3 class="card-title">{{ prod.title }}</h3>
+                <div class="card-price">
+                  {% if prod.price_varies %}
+                    From {{ prod.price_min | money }}
+                  {% else %}
+                    {{ prod.price | money }}
+                  {% endif %}
+                </div>
+                {% if prod.description != blank %}
+                  <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+                {% endif %}
+              </div>
             </div>
           </a>
-          <div class="card-body">
-            <h3 class="card-title">{{ prod.title }}</h3>
-            <div class="card-price">
-              {% if prod.price_varies %}
-                From {{ prod.price_min | money }}
-              {% else %}
-                {{ prod.price | money }}
-              {% endif %}
-            </div>
-          </div>
         </div>
       {% else %}
         <div class="placeholder">Select a product</div>
       {% endif %}
     {% endfor %}
   </div>
-
-  <!-- Modal Root -->
-  <dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
-    <form method="dialog"><button class="pv-close" aria-label="Close quick view">×</button></form>
-    <div class="pv-content">
-      <div class="pv-media"></div>
-      <div class="pv-info">
-        <h3 class="pv-title"></h3>
-        <div class="pv-price"></div>
-        <div class="pv-desc"></div>
-        <form class="pv-form">
-          <input type="hidden" name="id" class="pv-variant-id" />
-          <button type="submit" class="pv-add" aria-label="Add to cart">Add to cart</button>
-        </form>
-        <div class="pv-status" role="status" aria-live="polite"></div>
-      </div>
-    </div>
-  </dialog>
 </section>
 
 <style>
@@ -104,127 +80,36 @@ Product Grid (6) with Quick View
 .hover-overlay { 
   position: absolute; 
   inset: 0; 
-  background: rgba(0,0,0,.45); 
+  background: rgba(0,0,0,.65); 
   display: flex; 
   align-items: center; 
   justify-content: center; 
   opacity: 0; 
   transition: opacity .3s ease; 
+  color: #fff;
+  padding: 24px;
+  text-align: center;
 }
 .card:hover .hover-overlay { opacity: 1; }
 
-.quick-btn { 
-  background: #fff; 
-  border: none; 
-  padding: 10px 16px; 
-  border-radius: 6px; 
-  cursor: pointer; 
-  font-size: 14px; 
-  font-weight: 600; 
+.hover-info { max-width: 90%; }
+.card-title { font-size: 18px; margin: 0 0 8px; }
+.card-price { font-weight: 700; margin-bottom: 8px; }
+.card-desc { font-size: 14px; opacity: .9; }
+
+/* Placeholder */
+.placeholder { 
+  border: 1px dashed rgba(0,0,0,.2); 
+  border-radius: 12px; 
+  padding: 40px; 
+  text-align:center; 
+  color: #666; 
 }
-
-/* Card body */
-.card-body { padding: 12px; text-align: center; }
-.card-title { font-size: 16px; margin: 0 0 4px; }
-.card-price { font-weight: 600; }
-
-/* Modal */
-.pv-modal { width: min(700px, 92vw); border: none; border-radius: 16px; padding: 0; }
-.pv-modal::backdrop { background: rgba(0,0,0,.45); }
-.pv-content { padding: 20px; }
-.pv-close { position: absolute; inset: 8px 8px auto auto; border: none; background: #fff; border-radius: 999px; width: 36px; height: 36px; font-size: 20px; }
-.pv-title { font-size: 22px; margin-bottom: 8px; }
-.pv-price { font-weight: 700; margin-bottom: 8px; }
-.pv-desc { font-size: 14px; margin-bottom: 12px; }
-.pv-add { padding: 10px 16px; border: 1px solid currentColor; border-radius: 6px; }
 </style>
-
-<script>
-(function(){
-  const root = document.getElementById('section-{{ section.id }}');
-  const modal = root.querySelector('.pv-modal');
-  const mediaEl = modal.querySelector('.pv-media');
-  const titleEl = modal.querySelector('.pv-title');
-  const priceEl = modal.querySelector('.pv-price');
-  const descEl = modal.querySelector('.pv-desc');
-  const variantInput = modal.querySelector('.pv-variant-id');
-  const form = modal.querySelector('.pv-form');
-  const statusEl = modal.querySelector('.pv-status');
-
-  // Trap focus in modal for accessibility
-  function trapFocus(element) {
-    const focusableEls = element.querySelectorAll('a, button, textarea, input, select, [tabindex]:not([tabindex="-1"])');
-    const firstFocusableEl = focusableEls[0];  
-    const lastFocusableEl = focusableEls[focusableEls.length - 1];
-
-    element.addEventListener('keydown', function(e) {
-      if (e.key === 'Tab') {
-        if (e.shiftKey) { // shift + tab
-          if (document.activeElement === firstFocusableEl) {
-            e.preventDefault();
-            lastFocusableEl.focus();
-          }
-        } else { // tab
-          if (document.activeElement === lastFocusableEl) {
-            e.preventDefault();
-            firstFocusableEl.focus();
-          }
-        }
-      }
-    });
-  }
-
-  root.querySelectorAll('.quick-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const handle = btn.getAttribute('data-handle');
-      const desc = btn.getAttribute('data-desc');
-      try {
-        const res = await fetch(`/products/${handle}.js`);
-        const product = await res.json();
-
-        titleEl.textContent = product.title;
-        priceEl.textContent = Shopify.formatMoney(product.variants[0].price);
-        descEl.textContent = desc || "";
-        mediaEl.innerHTML = product.images[0] ? `<img src="${product.images[0]}" alt="${product.title}">` : "";
-
-        variantInput.value = product.variants[0].id;
-
-        if (typeof modal.showModal === 'function') modal.showModal();
-        else modal.setAttribute('open','');
-
-        trapFocus(modal);
-
-        form.onsubmit = async (e) => {
-          e.preventDefault();
-          statusEl.textContent = 'Adding...';
-          const res = await fetch('/cart/add.js', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: [{ id: Number(variantInput.value), quantity: 1 }] })
-          });
-          if(res.ok){
-            statusEl.textContent = 'Added to cart!';
-          } else {
-            statusEl.textContent = 'Error adding to cart.';
-          }
-        };
-      } catch(err){
-        console.error(err);
-        statusEl.textContent = 'Failed to load product.';
-      }
-    });
-  });
-
-  modal.querySelector('.pv-close').addEventListener('click', () => {
-    if(typeof modal.close === 'function'){ modal.close(); } 
-    else { modal.removeAttribute('open'); }
-  });
-})();
-</script>
 
 {% schema %}
 {
-  "name": "Product Grid (6) — Quick View",
+  "name": "Product Grid (6) — Hover Info",
   "settings": [],
   "blocks": [
     {
@@ -273,7 +158,7 @@ Product Grid (6) with Quick View
   "max_blocks": 6,
   "presets": [
     {
-      "name": "Product Grid (6) — Quick View",
+      "name": "Product Grid (6) — Hover Info",
       "category": "Custom"
     }
   ]
