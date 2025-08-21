@@ -1,7 +1,7 @@
 {% comment %}
-Product Grid (6) with Hover Info
+Product Grid (6) with Hover Info + Quick View
 - Choose 6 products individually
-- Hover effect on product card: show product info overlay
+- Hover effect: image zoom + overlay with info + quick view button
 - Responsive grid: 2 cols mobile, 3 cols desktop
 {% endcomment %}
 
@@ -19,28 +19,55 @@ Product Grid (6) with Hover Info
                 loading="lazy" 
               />
             {% endif %}
-            <div class="hover-overlay">
-              <div class="hover-info">
-                <h3 class="card-title">{{ prod.title }}</h3>
-                <div class="card-price">
-                  {% if prod.price_varies %}
-                    From {{ prod.price_min | money }}
-                  {% else %}
-                    {{ prod.price | money }}
-                  {% endif %}
-                </div>
-                {% if prod.description != blank %}
-                  <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+          </a>
+          <!-- Hover Overlay -->
+          <div class="hover-overlay">
+            <div class="hover-info">
+              <h3 class="card-title">{{ prod.title }}</h3>
+              <div class="card-price">
+                {% if prod.price_varies %}
+                  From {{ prod.price_min | money }}
+                {% else %}
+                  {{ prod.price | money }}
                 {% endif %}
               </div>
+              {% if prod.description != blank %}
+                <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+              {% endif %}
+              <button 
+                class="quick-btn" 
+                type="button" 
+                data-handle="{{ prod.handle }}" 
+                data-desc="{{ prod.description | strip_html | escape }}"
+              >
+                Quick View
+              </button>
             </div>
-          </a>
+          </div>
         </div>
       {% else %}
         <div class="placeholder">Select a product</div>
       {% endif %}
     {% endfor %}
   </div>
+
+  <!-- Modal Root -->
+  <dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
+    <form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
+    <div class="pv-content">
+      <div class="pv-media"></div>
+      <div class="pv-info">
+        <h3 class="pv-title"></h3>
+        <div class="pv-price"></div>
+        <div class="pv-desc"></div>
+        <form class="pv-form">
+          <input type="hidden" name="id" class="pv-variant-id" />
+          <button type="submit" class="pv-add">Add to cart</button>
+        </form>
+        <div class="pv-status" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </dialog>
 </section>
 
 <style>
@@ -64,12 +91,7 @@ Product Grid (6) with Hover Info
 }
 .card:hover { transform: translateY(-4px); }
 
-/* Image + overlay */
-.card-media { 
-  position: relative; 
-  display: block; 
-  overflow: hidden; 
-}
+/* Image */
 .card-media img { 
   width: 100%; 
   height: auto; 
@@ -77,10 +99,11 @@ Product Grid (6) with Hover Info
 }
 .card:hover img { transform: scale(1.05); }
 
+/* Hover overlay */
 .hover-overlay { 
   position: absolute; 
   inset: 0; 
-  background: red !important; 
+  background: rgba(0,0,0,.6); 
   display: flex; 
   align-items: center; 
   justify-content: center; 
@@ -89,14 +112,27 @@ Product Grid (6) with Hover Info
   color: #fff;
   padding: 24px;
   text-align: center;
-  z-index: 10;
+  z-index: 2; 
 }
-.card:hover .hover-overlay { opacity: 1 !important; }
+.card:hover .hover-overlay { opacity: 1; }
 
 .hover-info { max-width: 90%; }
 .card-title { font-size: 18px; margin: 0 0 8px; }
 .card-price { font-weight: 700; margin-bottom: 8px; }
-.card-desc { font-size: 14px; opacity: .9; }
+.card-desc { font-size: 14px; opacity: .9; margin-bottom: 12px; }
+
+.quick-btn { 
+  background: #fff; 
+  color: #000;
+  border: none; 
+  padding: 10px 16px; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  font-size: 14px; 
+  font-weight: 600; 
+  transition: background .2s ease; 
+}
+.quick-btn:hover { background: #f2f2f2; }
 
 /* Placeholder */
 .placeholder { 
@@ -106,63 +142,91 @@ Product Grid (6) with Hover Info
   text-align:center; 
   color: #666; 
 }
+
+/* Modal */
+.pv-modal { width: min(700px, 92vw); border: none; border-radius: 16px; padding: 0; }
+.pv-modal::backdrop { background: rgba(0,0,0,.45); }
+.pv-content { padding: 20px; }
+.pv-close { position: absolute; inset: 8px 8px auto auto; border: none; background: #fff; border-radius: 999px; width: 36px; height: 36px; font-size: 20px; }
+.pv-title { font-size: 22px; margin-bottom: 8px; }
+.pv-price { font-weight: 700; margin-bottom: 8px; }
+.pv-desc { font-size: 14px; margin-bottom: 12px; }
+.pv-add { padding: 10px 16px; border: 1px solid currentColor; border-radius: 6px; }
 </style>
+
+<script>
+(function(){
+  const root = document.getElementById('section-{{ section.id }}');
+  const modal = root.querySelector('.pv-modal');
+  const mediaEl = modal.querySelector('.pv-media');
+  const titleEl = modal.querySelector('.pv-title');
+  const priceEl = modal.querySelector('.pv-price');
+  const descEl = modal.querySelector('.pv-desc');
+  const variantInput = modal.querySelector('.pv-variant-id');
+  const form = modal.querySelector('.pv-form');
+  const statusEl = modal.querySelector('.pv-status');
+
+  root.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const handle = btn.getAttribute('data-handle');
+      const desc = btn.getAttribute('data-desc');
+      try {
+        const res = await fetch(`/products/${handle}.js`);
+        const product = await res.json();
+
+        titleEl.textContent = product.title;
+        priceEl.textContent = Shopify.formatMoney(product.price);
+        descEl.textContent = desc || "";
+        mediaEl.innerHTML = product.images[0] ? `<img src="${product.images[0]}" alt="${product.title}">` : "";
+
+        variantInput.value = product.variants[0].id;
+
+        if (typeof modal.showModal === 'function') modal.showModal();
+        else modal.setAttribute('open','');
+
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          statusEl.textContent = 'Adding...';
+          const res = await fetch('/cart/add.js', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: [{ id: Number(variantInput.value), quantity: 1 }] })
+          });
+          if(res.ok){
+            statusEl.textContent = 'Added to cart!';
+          } else {
+            statusEl.textContent = 'Error adding to cart.';
+          }
+        };
+      } catch(err){
+        console.error(err);
+        statusEl.textContent = 'Failed to load product.';
+      }
+    });
+  });
+
+  modal.querySelector('.pv-close').addEventListener('click', () => {
+    if(typeof modal.close === 'function'){ modal.close(); } 
+    else { modal.removeAttribute('open'); }
+  });
+})();
+</script>
 
 {% schema %}
 {
   "name": "Product Grid (6) — Hover Info",
   "settings": [],
   "blocks": [
-    {
-      "type": "product",
-      "name": "Product 1",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    },
-    {
-      "type": "product",
-      "name": "Product 2",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    },
-    {
-      "type": "product",
-      "name": "Product 3",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    },
-    {
-      "type": "product",
-      "name": "Product 4",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    },
-    {
-      "type": "product",
-      "name": "Product 5",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    },
-    {
-      "type": "product",
-      "name": "Product 6",
-      "settings": [
-        { "type": "product", "id": "product", "label": "Select product" }
-      ]
-    }
+    { "type": "product", "name": "Product 1", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product", "name": "Product 2", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product", "name": "Product 3", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product", "name": "Product 4", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product", "name": "Product 5", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product", "name": "Product 6", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] }
   ],
   "max_blocks": 6,
   "presets": [
-    {
-      "name": "Product Grid (6) — Hover Info",
-      "category": "Custom"
-    }
+    { "name": "Product Grid (6) — Hover Info", "category": "Custom" }
   ]
 }
 {% endschema %}
-
