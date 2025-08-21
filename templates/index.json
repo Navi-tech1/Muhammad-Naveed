@@ -89,12 +89,20 @@
       "settings": {
         "collection": "frontpage"
       }
+    },
+    "product_grid_VXkDB9": {
+      "type": "product-grid",
+      "name": "Product Grid (Quick View)",
+      "settings": {
+        "collection": ""
+      }
     }
   },
   "order": [
     "image_banner",
     "featured_collection",
     "product_grid_qxNp3i",
-    "product_grid_G4tKgr"
+    "product_grid_G4tKgr",
+    "product_grid_VXkDB9"
   ]
 }
