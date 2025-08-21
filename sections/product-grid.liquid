@@ -80,7 +80,7 @@ Product Grid (6) with Hover Info
 .hover-overlay { 
   position: absolute; 
   inset: 0; 
-  background: rgba(0,0,0,.65); 
+  background: red !important; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
@@ -89,8 +89,9 @@ Product Grid (6) with Hover Info
   color: #fff;
   padding: 24px;
   text-align: center;
+  z-index: 10;
 }
-.card:hover .hover-overlay { opacity: 1; }
+.card:hover .hover-overlay { opacity: 1 !important; }
 
 .hover-info { max-width: 90%; }
 .card-title { font-size: 18px; margin: 0 0 8px; }
