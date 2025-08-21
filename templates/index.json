@@ -13,32 +13,16 @@
       "type": "product-grid",
       "settings": {},
       "blocks": {
-        "product1": {
-          "type": "product",
-          "settings": { "product": "" }
-        },
-        "product2": {
-          "type": "product",
-          "settings": { "product": "" }
-        },
-        "product3": {
-          "type": "product",
-          "settings": { "product": "" }
-        },
-        "product4": {
-          "type": "product",
-          "settings": { "product": "" }
-        },
-        "product5": {
-          "type": "product",
-          "settings": { "product": "" }
-        },
-        "product6": {
-          "type": "product",
-          "settings": { "product": "" }
-        }
+        "product1": { "settings": { "product": "" } },
+        "product2": { "settings": { "product": "" } },
+        "product3": { "settings": { "product": "" } },
+        "product4": { "settings": { "product": "" } },
+        "product5": { "settings": { "product": "" } },
+        "product6": { "settings": { "product": "" } }
       },
-      "block_order": ["product1", "product2", "product3", "product4", "product5", "product6"]
+      "block_order": [
+        "product1", "product2", "product3", "product4", "product5", "product6"
+      ]
     }
   },
   "order": [
