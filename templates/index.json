@@ -76,53 +76,32 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qv_pd79Jc": {
+    "product_hover_qv_pCCmJr": {
       "type": "product-hover-QV",
       "blocks": {
-        "product1_BkeXnT": {
+        "product1_6YUVNz": {
           "type": "product1",
+          "settings": {
+            "product": "black-leather-bag"
+          }
+        },
+        "product2_YBdm6w": {
+          "type": "product2",
           "settings": {
             "product": "blue-silk-tuxedo"
           }
         },
-        "product2_YKgnig": {
-          "type": "product2",
-          "settings": {
-            "product": "classic-leather-jacket"
-          }
-        },
-        "product3_6ywwye": {
+        "product3_iN8XaB": {
           "type": "product3",
           "settings": {
-            "product": "floral-white-top"
-          }
-        },
-        "product4_XVdwGz": {
-          "type": "product4",
-          "settings": {
-            "product": "longsleeve-cotton-top"
-          }
-        },
-        "product5_hBxkzV": {
-          "type": "product5",
-          "settings": {
-            "product": "chequered-red-shirt"
-          }
-        },
-        "product6_868kGL": {
-          "type": "product6",
-          "settings": {
-            "product": "black-leather-bag"
+            "product": "dark-denim-top"
           }
         }
       },
       "block_order": [
-        "product1_BkeXnT",
-        "product2_YKgnig",
-        "product3_6ywwye",
-        "product4_XVdwGz",
-        "product5_hBxkzV",
-        "product6_868kGL"
+        "product1_6YUVNz",
+        "product2_YBdm6w",
+        "product3_iN8XaB"
       ],
       "name": "Product Grid QV",
       "settings": {}
@@ -131,6 +110,6 @@
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qv_pd79Jc"
+    "product_hover_qv_pCCmJr"
   ]
 }
