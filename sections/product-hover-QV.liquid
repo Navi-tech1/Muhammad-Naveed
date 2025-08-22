@@ -347,26 +347,25 @@ Product Grid QV — Robust full section (paste-ready)
 
     // Form submit (Add to cart)
     FORM.addEventListener('submit', function(e){
-      e.preventDefault();
-      const variantId = VAR_INPUT.value;
-      // check size if exists: find select labelled Size (heuristic)
-      const sizeSelect = Array.from(OPTS.querySelectorAll('select')).find(s => (s.previousSibling && /size/i.test(s.previousSibling.textContent)));
-      const sizeRequired = !!sizeSelect;
-      if (sizeRequired && (!sizeSelect.value || sizeSelect.value === '')) {
-        STATUS.textContent = 'Please choose your size.';
-        return;
-      }
-      if (!variantId) {
-        STATUS.textContent = 'Please select product options.';
-        return;
-      }
+  e.preventDefault();
+  const variantId = VAR_INPUT.value;
+  ...
+  getJSON(BASE + 'cart/add.js', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+    body: JSON.stringify({ id: Number(variantId), quantity: 1 })
+  })
+  .then(added => {
+    STATUS.textContent = added.product_title + ' added ✅';
+    refreshCartCount();
 
-      STATUS.textContent = 'Adding…';
-      getJSON(BASE + 'cart/add.js', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ id: Number(variantId), quantity: 1 })
-      })
+    // check color & size to trigger bundle
+    const color = OPTS.querySelector('.color-block.active')?.textContent || '';
+    const size = (sizeSelect && sizeSelect.value) || '';
+    if (color === 'Black' && size === 'Medium') {
+      ...
+    }
+  })
       .then(added => {
   STATUS.textContent = added.product_title + ' added ✅';
   refreshCartCount();
