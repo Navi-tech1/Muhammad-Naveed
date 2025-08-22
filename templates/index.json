@@ -76,18 +76,18 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qv_kFwh6M": {
+    "product_hover_qv_Kyf68f": {
       "type": "product-hover-QV",
       "blocks": {
-        "p1_bikBJM": {
+        "p1_yr7acA": {
           "type": "p1",
           "settings": {
-            "product": "black-leather-bag"
+            "product": "blue-silk-tuxedo"
           }
         }
       },
       "block_order": [
-        "p1_bikBJM"
+        "p1_yr7acA"
       ],
       "name": "Prod Grid QV",
       "settings": {}
@@ -96,6 +96,6 @@
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qv_kFwh6M"
+    "product_hover_qv_Kyf68f"
   ]
 }
