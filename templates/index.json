@@ -75,10 +75,62 @@
         "padding_top": 44,
         "padding_bottom": 36
       }
+    },
+    "product_hover_qv_pd79Jc": {
+      "type": "product-hover-QV",
+      "blocks": {
+        "product1_BkeXnT": {
+          "type": "product1",
+          "settings": {
+            "product": "blue-silk-tuxedo"
+          }
+        },
+        "product2_YKgnig": {
+          "type": "product2",
+          "settings": {
+            "product": "classic-leather-jacket"
+          }
+        },
+        "product3_6ywwye": {
+          "type": "product3",
+          "settings": {
+            "product": "floral-white-top"
+          }
+        },
+        "product4_XVdwGz": {
+          "type": "product4",
+          "settings": {
+            "product": "longsleeve-cotton-top"
+          }
+        },
+        "product5_hBxkzV": {
+          "type": "product5",
+          "settings": {
+            "product": "chequered-red-shirt"
+          }
+        },
+        "product6_868kGL": {
+          "type": "product6",
+          "settings": {
+            "product": "black-leather-bag"
+          }
+        }
+      },
+      "block_order": [
+        "product1_BkeXnT",
+        "product2_YKgnig",
+        "product3_6ywwye",
+        "product4_XVdwGz",
+        "product5_hBxkzV",
+        "product6_868kGL"
+      ],
+      "name": "Product Grid QV",
+      "settings": {}
     }
   },
   "order": [
     "image_banner",
-    "featured_collection"
+    "featured_collection",
+    "product_hover_qv_pd79Jc"
   ]
 }
