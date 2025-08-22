@@ -368,29 +368,29 @@ Product Grid QV — Robust full section (paste-ready)
         body: JSON.stringify({ id: Number(variantId), quantity: 1 })
       })
       .then(added => {
-        STATUS.textContent = added.product_title + ' added ✅';
+  STATUS.textContent = added.product_title + ' added ✅';
+  refreshCartCount();
+
+  // Always add Soft Winter Jacket as bundle (ID hardcoded)
+  getJSON(BASE + 'cart.js').then(cart => {
+    const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
+    if (!exists) {
+      return getJSON(BASE + 'cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
+      }).then(() => {
+        STATUS.textContent += ' + Soft Winter Jacket added 🎉';
         refreshCartCount();
 
-        // check color & size to trigger bundle
-        const color = OPTS.querySelector('.color-block.active')?.textContent || '';
-        const size = (sizeSelect && sizeSelect.value) || '';
-        if (color === 'Black' && size === 'Medium') {
-          // avoid duplicates
-          getJSON(BASE + 'cart.js').then(cart => {
-            const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
-            if (!exists) {
-              return getJSON(BASE + 'cart/add.js', {
-                method: 'POST',
-                headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
-                body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
-              }).then(() => {
-                STATUS.textContent += ' + Soft Winter Jacket added 🎉';
-                refreshCartCount();
-              });
-            }
-          }).catch(()=>{ /* ignore */ });
+        // if your theme has a drawer/mini-cart, try to open it
+        if (window.Shopify && Shopify.theme && Shopify.theme.cart && Shopify.theme.cart.open) {
+          Shopify.theme.cart.open(); 
         }
-      })
+      });
+    }
+  }).catch(()=>{ /* ignore */ });
+})
       .catch(err => {
         console.error('Prod Grid QV add error', err);
         STATUS.textContent = 'Could not add to cart: ' + (err.message || err);
