@@ -76,18 +76,18 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qv_z73kc3": {
+    "product_hover_qv_DHMifL": {
       "type": "product-hover-QV",
       "blocks": {
-        "p1_k8tCCb": {
+        "p1_A9DtDP": {
           "type": "p1",
           "settings": {
-            "product": "red-sports-tee"
+            "product": "floral-white-top"
           }
         }
       },
       "block_order": [
-        "p1_k8tCCb"
+        "p1_A9DtDP"
       ],
       "name": "Prod Grid QV",
       "settings": {}
@@ -96,6 +96,6 @@
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qv_z73kc3"
+    "product_hover_qv_DHMifL"
   ]
 }
