@@ -1,12 +1,3 @@
-{% comment %}
-Product Grid with Hover + Quick View (robust)
-- Quick View loads product JSON via /products/{handle}.js (respects locale/market)
-- Variant selectors + live price update
-- AJAX Add to Cart
-- Bundle rule: if options include "Black" and "Medium" → auto-add Soft Winter Jacket (variant 9843130663219) once
-- Mini-cart badge update
-{% endcomment %}
-
 <section id="section-{{ section.id }}" class="custom-grid">
   <div class="grid">
     {% for block in section.blocks %}
@@ -35,7 +26,7 @@ Product Grid with Hover + Quick View (robust)
   </div>
 </section>
 
-<!-- Quick View Modal Card -->
+<!-- Quick View Modal -->
 <div class="quickview-backdrop" data-qv-root hidden>
   <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Quick view">
     <button class="qv-close" aria-label="Close">×</button>
@@ -49,7 +40,9 @@ Product Grid with Hover + Quick View (robust)
         <form class="qv-form">
           <div class="qv-options"></div>
           <input type="hidden" name="id" class="qv-variant-id" />
-          <button type="submit" class="qv-add">Add to cart</button>
+          <button type="submit" class="qv-add">
+            ADD TO CART <span class="arrow">→</span>
+          </button>
         </form>
 
         <div class="qv-status" role="status" aria-live="polite"></div>
@@ -59,34 +52,48 @@ Product Grid with Hover + Quick View (robust)
 </div>
 
 <style>
+/* Grid */
 .custom-grid .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
 @media (min-width:768px){ .custom-grid .grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
-
 .card { border:1px solid rgba(0,0,0,.08); border-radius:12px; overflow:hidden; position:relative; transition:transform .25s ease; }
 .card:hover { transform:translateY(-4px); }
 .card-media img { width:100%; height:auto; display:block; transition:transform .3s ease; }
 .card:hover img { transform:scale(1.05); }
 
+/* Overlay */
 .hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; text-align:center; padding:16px; }
 .card:hover .hover-overlay { opacity:1; }
-.quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
+.card-title { font-size:18px; margin:0 0 8px; color:#fff; }
+.card-price { font-weight:700; margin-bottom:8px; color:#fff; }
+.quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
 
+/* Quick View Modal */
 .quickview-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s ease; }
 .quickview-backdrop.active { opacity:1; pointer-events:auto; }
 .quickview-card { background:#fff; border-radius:12px; max-width:720px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
 .quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
-.qv-close { position:absolute; top:10px; right:10px; border:none; background:#eee; border-radius:50%; width:32px; height:32px; cursor:pointer; }
-.qv-content { display:grid; gap:16px; }
-@media (min-width:768px){ .qv-content { grid-template-columns:1fr 1fr; gap:24px; } }
+.qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:18px; }
+
+/* Modal content */
+.qv-content { display:grid; gap:20px; }
+@media(min-width:768px){ .qv-content { grid-template-columns:1fr 1fr; gap:24px; } }
 .qv-media img { width:100%; border-radius:8px; display:block; }
-.qv-title { margin:0 0 8px; font-size:20px; }
-.qv-price { font-weight:700; margin-bottom:8px; }
-.qv-desc { font-size:14px; margin-bottom:12px; opacity:.9; }
-.qv-options label { display:block; font-size:12px; margin:6px 0 4px; color:#444; }
-.qv-options select { width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; margin-bottom:10px; }
-.qv-add { background:#000; color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:600; }
-.qv-status { margin-top:8px; font-size:14px; color:green; }
-.placeholder { border:1px dashed rgba(0,0,0,.2); border-radius:12px; padding:40px; text-align:center; color:#666; }
+.qv-title { font-size:20px; margin:0 0 6px; }
+.qv-price { font-weight:700; margin-bottom:10px; }
+.qv-desc { font-size:14px; margin-bottom:14px; opacity:.9; }
+
+/* Options */
+.qv-options { margin-bottom:14px; }
+.qv-options label { display:block; font-size:12px; margin:8px 0 4px; color:#333; text-align:left; }
+.qv-options .color-blocks { display:flex; gap:8px; }
+.qv-options .color-block { flex:1; padding:10px; border:1px solid #ddd; text-align:center; cursor:pointer; }
+.qv-options .color-block.active { border:2px solid #000; background:#000; color:#fff; }
+.qv-options select { width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; }
+
+/* Add to cart */
+.qv-add { background:#000; color:#fff; border:none; padding:12px 16px; border-radius:4px; cursor:pointer; font-weight:600; width:100%; text-align:center; }
+.qv-add .arrow { margin-left:8px; font-size:16px; }
+.qv-status { margin-top:10px; font-size:14px; color:green; text-align:left; }
 </style>
 
 <script>
@@ -94,6 +101,8 @@ Product Grid with Hover + Quick View (robust)
   const ROOT = document.querySelector('[data-qv-root]');
   if (!ROOT) return;
 
+  const CARD = ROOT.querySelector('.quickview-card');
+  const CLOSE = ROOT.querySelector('.qv-close');
   const MEDIA = ROOT.querySelector('.qv-media');
   const TITLE = ROOT.querySelector('.qv-title');
   const PRICE = ROOT.querySelector('.qv-price');
@@ -102,197 +111,141 @@ Product Grid with Hover + Quick View (robust)
   const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
   const STATUS = ROOT.querySelector('.qv-status');
   const FORM = ROOT.querySelector('.qv-form');
-  const CLOSE = ROOT.querySelector('.qv-close');
-
-  // Respect language/market base path like /en/
   const BASE = (window.Shopify && Shopify.routes && Shopify.routes.root) || "{{ routes.root_url }}";
-  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket (Black/Medium)
+  const JACKET_VARIANT_ID = 9843130663219;
+
+  function formatMoney(cents){
+    const moneyFormat = "{{ shop.money_format | replace: '"', '\"' }}";
+    let value = (cents / 100).toFixed(2);
+    return moneyFormat.replace("{{amount}}", value);
+  }
 
   function showModal(){ ROOT.hidden = false; requestAnimationFrame(()=> ROOT.classList.add('active')); }
   function hideModal(){ ROOT.classList.remove('active'); setTimeout(()=> (ROOT.hidden = true), 250); }
 
-  // --- Money formatting (no Shopify.formatMoney needed) ---
-  const MONEY_FORMAT = "{{ shop.money_format | replace: '"', '\"' }}";
-  function withDelimiters(number, precision, thousands, decimal){
-    thousands = thousands || ','; decimal = decimal || '.';
-    const parts = Number(number).toFixed(precision).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousands);
-    return parts.join(decimal);
-  }
-  function formatMoney(cents){
-    cents = Number(cents);
-    if (isNaN(cents)) cents = 0;
-    let fmt = MONEY_FORMAT;
-    if (fmt.indexOf('{{amount_no_decimals_with_comma_separator}}') > -1) {
-      return fmt.replace('{{amount_no_decimals_with_comma_separator}}', withDelimiters(cents/100, 0, '.', ','));
-    }
-    if (fmt.indexOf('{{amount_with_comma_separator}}') > -1) {
-      return fmt.replace('{{amount_with_comma_separator}}', withDelimiters(cents/100, 2, '.', ','));
-    }
-    if (fmt.indexOf('{{amount_no_decimals}}') > -1) {
-      return fmt.replace('{{amount_no_decimals}}', withDelimiters(cents/100, 0, ',', '.'));
-    }
-    // default: {{amount}}
-    return fmt.replace('{{amount}}', withDelimiters(cents/100, 2, ',', '.'));
-  }
-
-  // --- Helpers ---
   function getJSON(url, opts){
     return fetch(url, Object.assign({ headers:{ 'Accept':'application/json' } }, opts || {}))
       .then(async r => {
-        if (!r.ok) {
-          const t = await r.text().catch(()=> '');
-          throw new Error(t || ('HTTP '+r.status));
-        }
+        if (!r.ok) throw new Error(await r.text() || ('HTTP '+r.status));
         return r.json();
       });
   }
-  function updateCartBadge(count){
-    const bubble = document.querySelector('#cart-icon-bubble .cart-count-bubble, .cart-count-bubble');
-    if (bubble){
-      const textEl = bubble.querySelector('.text') || bubble;
-      textEl.textContent = count;
-      bubble.hidden = count <= 0;
-    }
-    const dataCount = document.querySelector('[data-cart-count]');
-    if (dataCount) dataCount.textContent = count;
-  }
-  function refreshCartCount(){
-    getJSON(`${BASE}cart.js`).then(cart => updateCartBadge(cart.item_count)).catch(()=>{});
-  }
-  function setDescription(html){
-    try {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html || '';
-      const text = tmp.textContent || tmp.innerText || '';
-      DESC.textContent = text.trim();
-    } catch(e){ DESC.textContent = ''; }
-  }
 
-  // Build unique value arrays for each option
-  function optionValues(product, index){ // index: 1..3
-    const key = 'option' + index;
-    const set = new Set();
-    (product.variants || []).forEach(v => { if (v[key]) set.add(v[key]); });
-    return Array.from(set);
-  }
-
-  // Build variant selectors with labels
   function buildOptions(product, currentVariant){
     OPTS.innerHTML = '';
-    const selectors = [];
-    (product.options || []).forEach((name, i) => {
-      const idx = i + 1;
-      const values = optionValues(product, idx);
-      if (!values.length) return;
 
-      const label = document.createElement('label');
-      label.setAttribute('for', `qv-opt-${idx}`);
-      label.textContent = name;
-      const select = document.createElement('select');
-      select.id = `qv-opt-${idx}`;
-      select.dataset.index = idx;
+    // Color options as blocks
+    if (product.options.includes("Color")) {
+      const colors = [...new Set(product.variants.map(v => v.option1))];
+      const wrap = document.createElement('div');
+      wrap.className = "color-blocks";
+      colors.forEach(c => {
+        const div = document.createElement('div');
+        div.className = "color-block" + (c === currentVariant.option1 ? " active" : "");
+        div.textContent = c;
+        div.onclick = ()=> {
+          wrap.querySelectorAll('.color-block').forEach(el=>el.classList.remove('active'));
+          div.classList.add('active');
+          updateVariant();
+        };
+        wrap.appendChild(div);
+      });
+      const label = document.createElement('label'); label.textContent = "Color";
+      OPTS.append(label, wrap);
+    }
 
-      values.forEach(v => select.append(new Option(v, v)));
-      // Preselect current variant's value if present
-      const pre = currentVariant ? currentVariant['option'+idx] : null;
-      if (pre && values.includes(pre)) select.value = pre;
+    // Size as dropdown
+    if (product.options.includes("Size")) {
+      const sizes = [...new Set(product.variants.map(v => v.option2))];
+      const sel = document.createElement('select');
+      sizes.forEach(s => sel.append(new Option(s, s)));
+      sel.value = currentVariant.option2;
+      sel.onchange = updateVariant;
+      const label = document.createElement('label'); label.textContent = "Size";
+      OPTS.append(label, sel);
+    }
 
-      OPTS.appendChild(label);
-      OPTS.appendChild(select);
-      selectors.push(select);
-    });
-
-    function updateFromSelectors(){
-      const chosen = selectors.map((s, i) => ({ idx: i+1, val: s.value }));
-      const found = (product.variants || []).find(v =>
-        chosen.every(c => !c.val || v['option'+c.idx] === c.val)
+    function updateVariant(){
+      const color = OPTS.querySelector('.color-block.active')?.textContent;
+      const size  = OPTS.querySelector('select')?.value;
+      const found = product.variants.find(v =>
+        (!color || v.option1===color) && (!size || v.option2===size)
       );
       if (found){
         VAR_INPUT.value = found.id;
         PRICE.textContent = formatMoney(found.price);
-        STATUS.textContent = '';
-      } else {
-        VAR_INPUT.value = '';
-        STATUS.textContent = 'This combination is unavailable.';
       }
     }
-    selectors.forEach(sel => sel.addEventListener('change', updateFromSelectors));
+    updateVariant();
   }
 
-  // --- Open Quick View ---
+  function setDescription(html){
+    const tmp = document.createElement('div'); tmp.innerHTML = html || '';
+    DESC.textContent = (tmp.textContent || '').trim();
+  }
+
+  function refreshCartCount(){
+    getJSON(`${BASE}cart.js`).then(cart => {
+      const bubble = document.querySelector('.cart-count-bubble, [data-cart-count]');
+      if (bubble) bubble.textContent = cart.item_count;
+    });
+  }
+
   document.addEventListener('click', function(e){
     const btn = e.target.closest('.quick-btn');
     if (!btn) return;
     const handle = btn.getAttribute('data-handle');
-    if (!handle) return;
-
     STATUS.textContent = 'Loading…';
     getJSON(`${BASE}products/${encodeURIComponent(handle)}.js`)
       .then(product => {
-        TITLE.textContent = product.title || '';
-        const img = (product.images && product.images[0]) ? product.images[0] : null;
-        MEDIA.innerHTML = img ? `<img src="${img}${img.includes('?') ? '&' : '?'}width=900" alt="${product.title}">` : '';
-        const firstVariant = (product.variants && product.variants[0]) ? product.variants[0] : null;
-        PRICE.textContent = firstVariant ? formatMoney(firstVariant.price) : '';
+        TITLE.textContent = product.title;
+        MEDIA.innerHTML = product.images.length ? `<img src="${product.images[0]}" alt="${product.title}">` : '';
+        const firstVariant = product.variants[0];
+        PRICE.textContent = formatMoney(firstVariant.price);
         setDescription(product.body_html);
-
-        VAR_INPUT.value = firstVariant ? firstVariant.id : '';
+        VAR_INPUT.value = firstVariant.id;
         buildOptions(product, firstVariant);
         STATUS.textContent = '';
         showModal();
       })
-      .catch(err => {
-        STATUS.textContent = 'Unable to load product: ' + err.message;
-        showModal();
-      });
+      .catch(err => { STATUS.textContent = 'Unable to load product: ' + err.message; showModal(); });
   });
 
-  // Close modal
   CLOSE.addEventListener('click', hideModal);
-  ROOT.addEventListener('click', (e)=>{ if (e.target === ROOT) hideModal(); });
-  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && ROOT.classList.contains('active')) hideModal(); });
+  ROOT.addEventListener('click', e=>{ if(e.target===ROOT) hideModal(); });
 
-  // --- Add to Cart ---
   FORM.addEventListener('submit', function(e){
     e.preventDefault();
     const variantId = VAR_INPUT.value;
-    if (!variantId) { STATUS.textContent = 'Please select a variant.'; return; }
-    STATUS.textContent = 'Adding…';
+    if (!variantId) { STATUS.textContent = 'Please select options.'; return; }
 
+    STATUS.textContent = 'Adding…';
     getJSON(`${BASE}cart/add.js`, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
       body: JSON.stringify({ id: Number(variantId), quantity: 1 })
     })
     .then(added => {
-      STATUS.textContent = `${added.product_title} added to cart ✅`;
+      STATUS.textContent = `${added.product_title} added ✅`;
       refreshCartCount();
 
-      // Check selected options for rule
-      const selected = Array.from(OPTS.querySelectorAll('select')).map(s => (s.value || '').toLowerCase());
-      const isBlackMedium = selected.includes('black') && selected.includes('medium');
-
-      if (isBlackMedium){
-        // Avoid duplicates
-        return getJSON(`${BASE}cart.js`).then(cart => {
+      // Bundle rule
+      const color = OPTS.querySelector('.color-block.active')?.textContent;
+      const size  = OPTS.querySelector('select')?.value;
+      if (color==="Black" && size==="Medium"){
+        getJSON(`${BASE}cart.js`).then(cart => {
           const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
           if (!exists){
             return getJSON(`${BASE}cart/add.js`, {
               method:'POST',
-              headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+              headers:{ 'Content-Type':'application/json','Accept':'application/json' },
               body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
-            }).then(()=> {
-              STATUS.textContent += ' + Soft Winter Jacket added automatically 🎉';
-              refreshCartCount();
-            });
+            }).then(()=> STATUS.textContent += ' + Jacket auto-added 🎉');
           }
         });
       }
     })
-    .catch(err => {
-      STATUS.textContent = 'Could not add to cart: ' + err.message;
-    });
+    .catch(err => STATUS.textContent = 'Could not add: ' + err.message);
   });
 })();
 </script>
@@ -310,8 +263,6 @@ Product Grid with Hover + Quick View (robust)
     { "type": "p6", "name": "Product 6", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] }
   ],
   "max_blocks": 6,
-  "presets": [
-    { "name": "Prod Grid QV", "category": "Custom" }
-  ]
+  "presets": [ { "name": "Prod Grid QV", "category": "Custom" } ]
 }
 {% endschema %}
