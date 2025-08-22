@@ -1,3 +1,13 @@
+{% comment %}
+Product Grid QV — Complete section
+- Hover overlay (white title)
+- Quick View modal (image left / info right)
+- Color as blocks, Size as dropdown ("Choose your size")
+- AJAX Add to Cart; requires size when present
+- Bundle: Black + Medium => auto-add Soft Winter Jacket variant 9843130663219 (no duplicates)
+- Updates cart count
+{% endcomment %}
+
 <section id="section-{{ section.id }}" class="custom-grid">
   <div class="grid">
     {% for block in section.blocks %}
@@ -9,6 +19,7 @@
               <img src="{{ prod.featured_image | img_url: '600x' }}" alt="{{ prod.title }}" loading="lazy" />
             {% endif %}
           </a>
+
           <div class="hover-overlay">
             <div class="hover-info">
               <h3 class="card-title">{{ prod.title }}</h3>
@@ -26,8 +37,8 @@
   </div>
 </section>
 
-<!-- Quick View Modal -->
-<div class="quickview-backdrop" data-qv-root hidden>
+<!-- Quick View Modal (unique root per section) -->
+<div class="quickview-backdrop" id="qv-root-{{ section.id }}" hidden>
   <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Quick view">
     <button class="qv-close" aria-label="Close">×</button>
     <div class="qv-content">
@@ -52,7 +63,7 @@
 </div>
 
 <style>
-/* Grid */
+/* Grid & cards */
 .custom-grid .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
 @media (min-width:768px){ .custom-grid .grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
 .card { border:1px solid rgba(0,0,0,.08); border-radius:12px; overflow:hidden; position:relative; transition:transform .25s ease; }
@@ -60,10 +71,10 @@
 .card-media img { width:100%; height:auto; display:block; transition:transform .3s ease; }
 .card:hover img { transform:scale(1.05); }
 
-/* Overlay */
-.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; text-align:center; padding:16px; }
+/* Hover overlay */
+.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .25s ease; text-align:center; padding:16px; }
 .card:hover .hover-overlay { opacity:1; }
-.card-title { font-size:18px; margin:0 0 8px; color:#fff; }
+.card-title { font-size:18px; margin:0 0 8px; color:#fff; } /* white title */
 .card-price { font-weight:700; margin-bottom:8px; color:#fff; }
 .quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
 
@@ -74,85 +85,333 @@
 .quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
 .qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:18px; }
 
-/* Modal content */
+/* Modal content layout */
 .qv-content { display:grid; gap:20px; }
-@media(min-width:768px){ .qv-content { grid-template-columns:1fr 1fr; gap:24px; } }
+@media(min-width:768px){ .qv-content { grid-template-columns: 1fr 1fr; gap:24px; } }
 .qv-media img { width:100%; border-radius:8px; display:block; }
 .qv-title { font-size:20px; margin:0 0 6px; }
 .qv-price { font-weight:700; margin-bottom:10px; }
-.qv-desc { font-size:14px; margin-bottom:14px; opacity:.9; }
+.qv-desc { font-size:14px; margin-bottom:14px; opacity:.95; }
 
-/* Options */
+/* Options UI */
 .qv-options { margin-bottom:14px; }
 .qv-options label { display:block; font-size:12px; margin:8px 0 4px; color:#333; text-align:left; }
-.qv-options .color-blocks { display:flex; gap:8px; }
-.qv-options .color-block { flex:1; padding:10px; border:1px solid #ddd; text-align:center; cursor:pointer; }
-.qv-options .color-block.active { border:2px solid #000; background:#000; color:#fff; }
+.color-blocks { display:flex; gap:8px; margin-bottom:10px; }
+.color-block { flex:1; padding:10px; border:1px solid #ddd; text-align:center; cursor:pointer; user-select:none; border-radius:4px; background:#fff; }
+.color-block.active { border:2px solid #000; background:#000; color:#fff; }
 .qv-options select { width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; background:#fff; cursor:pointer; }
 
 /* Add to cart */
 .qv-add { background:#000; color:#fff; border:none; padding:12px 16px; border-radius:4px; cursor:pointer; font-weight:600; width:100%; text-align:center; }
 .qv-add .arrow { margin-left:8px; font-size:16px; }
 .qv-status { margin-top:10px; font-size:14px; color:green; text-align:left; }
+
+/* Placeholder */
+.placeholder { border:1px dashed rgba(0,0,0,.2); border-radius:12px; padding:40px; text-align:center; color:#666; }
 </style>
 
 <script>
-function formatMoney(cents) {
-  return (cents / 100).toLocaleString(undefined, { 
-    style: "currency", 
-    currency: "{{ shop.currency }}" 
-  });
-}
+(function(){
+  // Unique elements for this section
+  const sectionId = {{ section.id }};
+  const sectionEl = document.getElementById('section-{{ section.id }}');
+  const ROOT = document.getElementById('qv-root-{{ section.id }}');
+  if (!sectionEl || !ROOT) return;
 
-function buildOptions(product, currentVariant){
-  OPTS.innerHTML = '';
+  const CARD = ROOT.querySelector('.quickview-card');
+  const CLOSE = ROOT.querySelector('.qv-close');
+  const MEDIA = ROOT.querySelector('.qv-media');
+  const TITLE = ROOT.querySelector('.qv-title');
+  const PRICE = ROOT.querySelector('.qv-price');
+  const DESC  = ROOT.querySelector('.qv-desc');
+  const OPTS  = ROOT.querySelector('.qv-options');
+  const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
+  const STATUS = ROOT.querySelector('.qv-status');
+  const FORM = ROOT.querySelector('.qv-form');
 
-  // Color options as blocks
-  if (product.options.includes("Color")) {
-    const colors = [...new Set(product.variants.map(v => v.option1))];
-    const wrap = document.createElement('div');
-    wrap.className = "color-blocks";
-    colors.forEach(c => {
-      const div = document.createElement('div');
-      div.className = "color-block";
-      div.textContent = c;
-      div.onclick = ()=> {
-        wrap.querySelectorAll('.color-block').forEach(el=>el.classList.remove('active'));
-        div.classList.add('active');
-        updateVariant();
-      };
-      wrap.appendChild(div);
-    });
-    const label = document.createElement('label'); label.textContent = "Color";
-    OPTS.append(label, wrap);
-  }
+  // Base path that respects markets/locales
+  const BASE = (window.Shopify && Shopify.routes && Shopify.routes.root) || "{{ routes.root_url }}";
+  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket Black/Medium
 
-  // Size as dropdown
-  if (product.options.includes("Size")) {
-    const sizes = [...new Set(product.variants.map(v => v.option2))];
-    const sel = document.createElement('select');
-    sel.append(new Option("Choose your size", ""));
-    sizes.forEach(s => sel.append(new Option(s, s)));
-    sel.onchange = updateVariant;
-    const label = document.createElement('label'); label.textContent = "Size";
-    OPTS.append(label, sel);
-  }
+  function showModal(){ ROOT.hidden = false; requestAnimationFrame(()=> ROOT.classList.add('active')); }
+  function hideModal(){ ROOT.classList.remove('active'); setTimeout(()=> (ROOT.hidden = true), 250); }
 
-  function updateVariant(){
-    const color = OPTS.querySelector('.color-block.active')?.textContent;
-    const size  = OPTS.querySelector('select')?.value;
-    const found = product.variants.find(v =>
-      (!color || v.option1===color) && (!size || v.option2===size)
-    );
-    if (found){
-      VAR_INPUT.value = found.id;
-      PRICE.textContent = formatMoney(found.price);
-    } else {
-      VAR_INPUT.value = '';
+  // Money formatter using store currency
+  function formatMoney(cents){
+    try {
+      if (typeof cents !== 'number') cents = Number(cents);
+      if (isNaN(cents)) cents = 0;
+      return (cents/100).toLocaleString(undefined, { style: 'currency', currency: "{{ shop.currency }}" });
+    } catch(e){
+      return (cents/100).toFixed(2) + ' {{ shop.currency }}';
     }
   }
-}
 
+  // helper fetch that throws on non-OK (gives readable message)
+  function getJSON(url, opts){
+    return fetch(url, Object.assign({ headers:{ 'Accept':'application/json' } }, opts || {}))
+      .then(async r => {
+        if (!r.ok) {
+          const txt = await r.text().catch(()=> '');
+          throw new Error(txt || ('HTTP ' + r.status));
+        }
+        return r.json();
+      });
+  }
+
+  // Update cart counter (tries common selectors)
+  function refreshCartCount(){
+    getJSON(BASE + 'cart.js').then(cart => {
+      // common Dawn selector or generic data attribute
+      const bubble = document.querySelector('#cart-icon-bubble .cart-count-bubble, .cart-count-bubble, [data-cart-count]');
+      if (bubble) {
+        if (bubble.classList && bubble.classList.contains('cart-count-bubble')) {
+          // if Dawn-like bubble with nested text
+          const text = bubble.querySelector('.text') || bubble;
+          text.textContent = cart.item_count;
+          bubble.hidden = cart.item_count <= 0;
+        } else {
+          bubble.textContent = cart.item_count;
+        }
+      }
+    }).catch(()=>{ /* ignore errors */ });
+  }
+
+  // Build dynamic options UI (detect color & size indices)
+  function buildOptions(product, currentVariant){
+    OPTS.innerHTML = '';
+    // find option indices by name (case-insensitive)
+    const optNames = product.options || [];
+    const colorIndex = optNames.findIndex(n => /color|colour/i.test(n));
+    const sizeIndex  = optNames.findIndex(n => /size/i.test(n));
+
+    // Helper: unique values for a given option index (1-based)
+    function uniqueFor(idx){
+      const key = 'option' + idx;
+      const s = new Set();
+      (product.variants || []).forEach(v => { if (v[key]) s.add(v[key]); });
+      return Array.from(s);
+    }
+
+    // COLOR as blocks (if color option exists)
+    if (colorIndex !== -1){
+      const values = uniqueFor(colorIndex+1);
+      const label = document.createElement('label'); label.textContent = optNames[colorIndex] || 'Color';
+      const wrapper = document.createElement('div'); wrapper.className = 'color-blocks';
+      values.forEach(v => {
+        const block = document.createElement('div');
+        block.className = 'color-block';
+        block.textContent = v;
+        block.dataset.value = v;
+        block.addEventListener('click', () => {
+          wrapper.querySelectorAll('.color-block').forEach(x=>x.classList.remove('active'));
+          block.classList.add('active');
+          updateVariant();
+        });
+        wrapper.appendChild(block);
+      });
+      OPTS.appendChild(label);
+      OPTS.appendChild(wrapper);
+    }
+
+    // SIZE as dropdown (if size option exists)
+    if (sizeIndex !== -1){
+      const values = uniqueFor(sizeIndex+1);
+      const label = document.createElement('label'); label.textContent = optNames[sizeIndex] || 'Size';
+      const sel = document.createElement('select');
+      // placeholder
+      sel.appendChild(new Option('Choose your size', ''));
+      values.forEach(v => sel.appendChild(new Option(v, v)));
+      sel.addEventListener('change', updateVariant);
+      OPTS.appendChild(label);
+      OPTS.appendChild(sel);
+    }
+
+    // If there are other options (not color/size), render them as generic selects
+    optNames.forEach((name, idx) => {
+      if (idx === colorIndex || idx === sizeIndex) return;
+      const values = uniqueFor(idx+1);
+      if (values.length === 0) return;
+      const label = document.createElement('label'); label.textContent = name;
+      const sel = document.createElement('select');
+      sel.appendChild(new Option('Choose', ''));
+      values.forEach(v => sel.appendChild(new Option(v, v)));
+      sel.addEventListener('change', updateVariant);
+      OPTS.appendChild(label);
+      OPTS.appendChild(sel);
+    });
+
+    // set initial selection (no selection for size to avoid auto-XS)
+    // set active color if currentVariant has color
+    if (colorIndex !== -1 && currentVariant && currentVariant['option' + (colorIndex+1)]) {
+      const blocks = OPTS.querySelectorAll('.color-block');
+      blocks.forEach(b => {
+        if (b.dataset.value === currentVariant['option' + (colorIndex+1)]) b.classList.add('active');
+      });
+    }
+    if (sizeIndex !== -1 && currentVariant && currentVariant['option' + (sizeIndex+1)]) {
+      const sel = OPTS.querySelector('select');
+      if (sel) {
+        // do NOT auto-select size: keep placeholder unless you want preselect
+        // sel.value = currentVariant['option' + (sizeIndex+1)];
+      }
+    }
+
+    // Update variant based on current selections
+    function updateVariant(){
+      const chosen = [];
+      // loop through product.options order
+      (product.options || []).forEach((name, i) => {
+        const idx = i + 1;
+        let val = '';
+        // color
+        if (colorIndex === i) {
+          const active = OPTS.querySelector('.color-block.active');
+          if (active) val = active.dataset.value;
+        } else if (sizeIndex === i) {
+          const sel = Array.from(OPTS.querySelectorAll('select'))[0];
+          if (sel) val = sel.value;
+        } else {
+          // other selects - pick corresponding select in DOM by order (approx)
+          // find selects after color/size we've added in sequence
+          // fallback: try to find any select with label matching name
+          const selects = Array.from(OPTS.querySelectorAll('select'));
+          let found = '';
+          for (const s of selects) {
+            const lbl = s.previousSibling;
+            if (lbl && lbl.textContent === name) { found = s.value; break; }
+          }
+          val = found || '';
+        }
+        chosen.push(val);
+      });
+
+      // find variant matching chosen (empty selection fields allowed)
+      const found = (product.variants || []).find(v => {
+        return chosen.every((selVal, j) => {
+          if (!selVal) return true; // if user didn't choose that option, treat as wildcard
+          const key = 'option' + (j+1);
+          return v[key] === selVal;
+        });
+      });
+
+      if (found){
+        VAR_INPUT.value = found.id;
+        PRICE.textContent = formatMoney(found.price);
+        STATUS.textContent = '';
+      } else {
+        VAR_INPUT.value = '';
+        // if size option exists and not chosen, show friendly message on Add attempt
+        PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
+      }
+    }
+
+    // expose updateVariant for use inside click handlers
+    // call once to make sure price shows minimum
+    updateVariant();
+  } // end buildOptions
+
+  // Load product JSON and open modal
+  sectionEl.addEventListener('click', function(e){
+    const btn = e.target.closest('.quick-btn');
+    if (!btn) return;
+    const handle = btn.getAttribute('data-handle');
+    if (!handle) return;
+
+    STATUS.textContent = 'Loading…';
+    getJSON(BASE + 'products/' + encodeURIComponent(handle) + '.js')
+      .then(product => {
+        // Title, image, price min, description
+        TITLE.textContent = product.title || '';
+        const firstImg = product.images && product.images.length ? product.images[0] : null;
+        MEDIA.innerHTML = firstImg ? '<img src="' + firstImg + '" alt="' + (product.title || '') + '">' : '';
+        PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
+        setTimeout(()=> setDescription(product.body_html), 0);
+
+        // set variant input empty initially (force user to select size)
+        VAR_INPUT.value = '';
+
+        // build options UI and let user choose
+        buildOptions(product, {});
+
+        STATUS.textContent = '';
+        showModal();
+      })
+      .catch(err => {
+        STATUS.textContent = 'Unable to load product: ' + err.message;
+        showModal();
+      });
+  });
+
+  // Helpers
+  function setDescription(html){
+    try {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html || '';
+      const text = tmp.textContent || tmp.innerText || '';
+      DESC.textContent = text.trim();
+    } catch(e){ DESC.textContent = ''; }
+  }
+
+  // Close handlers
+  CLOSE.addEventListener('click', hideModal);
+  ROOT.addEventListener('click', (e)=> { if (e.target === ROOT) hideModal(); });
+  document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && ROOT.classList.contains('active')) hideModal(); });
+
+  // Add to cart behavior
+  FORM.addEventListener('submit', function(e){
+    e.preventDefault();
+    const variantId = VAR_INPUT.value;
+    // Determine whether product requires size and whether chosen
+    const sizeSelect = OPTS.querySelector('select');
+    const sizeRequired = !!sizeSelect; // we treat presence of size select as required
+    if (sizeRequired && (!sizeSelect.value || sizeSelect.value === '')) {
+      STATUS.textContent = 'Please choose your size.';
+      return;
+    }
+    if (!variantId) {
+      STATUS.textContent = 'Please select product options.';
+      return;
+    }
+
+    STATUS.textContent = 'Adding…';
+    getJSON(BASE + 'cart/add.js', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+      body: JSON.stringify({ id: Number(variantId), quantity: 1 })
+    })
+    .then(added => {
+      STATUS.textContent = added.product_title + ' added ✅';
+      refreshCartCount();
+
+      // Check the selected color and size for special bundle rule
+      const colorActive = OPTS.querySelector('.color-block.active')?.textContent || '';
+      const sizeVal = (OPTS.querySelector('select') && OPTS.querySelector('select').value) || '';
+      if (colorActive === 'Black' && sizeVal === 'Medium') {
+        // only add jacket if not already in cart
+        getJSON(BASE + 'cart.js').then(cart => {
+          const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
+          if (!exists) {
+            return getJSON(BASE + 'cart/add.js', {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+              body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
+            }).then(() => {
+              STATUS.textContent += ' + Soft Winter Jacket added 🎉';
+              refreshCartCount();
+            });
+          }
+        }).catch(()=>{ /* ignore */ });
+      }
+    })
+    .catch(err => {
+      STATUS.textContent = 'Could not add to cart: ' + err.message;
+    });
+  });
+
+  // initial hide
+  ROOT.hidden = true;
+})();
 </script>
 
 {% schema %}
