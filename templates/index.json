@@ -76,32 +76,53 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_hHncfC": {
+    "product_hover_qcEx6G": {
       "type": "product-hover",
       "blocks": {
-        "product_1_aDnWek": {
+        "product_1_GtXhXb": {
           "type": "product_1",
           "settings": {
-            "product": "dark-denim-top"
+            "product": "black-leather-bag"
           }
         },
-        "product_2_PGXbKD": {
+        "product_2_aRdGT3": {
           "type": "product_2",
           "settings": {
             "product": "blue-silk-tuxedo"
           }
         },
-        "product_3_JhBz9K": {
+        "product_3_JaBRaq": {
           "type": "product_3",
           "settings": {
-            "product": "black-leather-bag"
+            "product": "classic-leather-jacket"
+          }
+        },
+        "product_4_7fmxtt": {
+          "type": "product_4",
+          "settings": {
+            "product": "classic-varsity-top"
+          }
+        },
+        "product_5_cg8tUR": {
+          "type": "product_5",
+          "settings": {
+            "product": "dark-denim-top"
+          }
+        },
+        "product_6_BtVedn": {
+          "type": "product_6",
+          "settings": {
+            "product": "navy-sport-jacket"
           }
         }
       },
       "block_order": [
-        "product_1_aDnWek",
-        "product_2_PGXbKD",
-        "product_3_JhBz9K"
+        "product_1_GtXhXb",
+        "product_2_aRdGT3",
+        "product_3_JaBRaq",
+        "product_4_7fmxtt",
+        "product_5_cg8tUR",
+        "product_6_BtVedn"
       ],
       "name": "Product Grid QuickView",
       "settings": {}
@@ -110,6 +131,6 @@
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_hHncfC"
+    "product_hover_qcEx6G"
   ]
 }
