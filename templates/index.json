@@ -76,18 +76,32 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qv_rNQ8KG": {
+    "product_hover_qv_rwaBiy": {
       "type": "product-hover-QV",
       "blocks": {
-        "p1_bEJynp": {
+        "p1_YCBRtp": {
           "type": "p1",
           "settings": {
             "product": "black-leather-bag"
           }
+        },
+        "p2_xAfE9E": {
+          "type": "p2",
+          "settings": {
+            "product": "blue-silk-tuxedo"
+          }
+        },
+        "p3_h6rkJm": {
+          "type": "p3",
+          "settings": {
+            "product": "classic-leather-jacket"
+          }
         }
       },
       "block_order": [
-        "p1_bEJynp"
+        "p1_YCBRtp",
+        "p2_xAfE9E",
+        "p3_h6rkJm"
       ],
       "name": "Prod Grid QV",
       "settings": {}
@@ -96,6 +110,6 @@
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qv_rNQ8KG"
+    "product_hover_qv_rwaBiy"
   ]
 }
