@@ -1,11 +1,10 @@
 {% comment %}
-Product Grid QV — Complete section
-- Hover overlay (white title)
-- Quick View modal (image left / info right)
-- Color as blocks, Size as dropdown ("Choose your size")
+Product Grid QV — Robust full section (paste-ready)
+- Document-level delegation so Quick View always responds
+- Color blocks + Size select (placeholder "Choose your size")
 - AJAX Add to Cart; requires size when present
-- Bundle: Black + Medium => auto-add Soft Winter Jacket variant 9843130663219 (no duplicates)
-- Updates cart count
+- Bundle rule: Black + Medium -> add Soft Winter Jacket (9843130663219) once
+- Cart count refresh
 {% endcomment %}
 
 <section id="section-{{ section.id }}" class="custom-grid">
@@ -37,7 +36,7 @@ Product Grid QV — Complete section
   </div>
 </section>
 
-<!-- Quick View Modal (unique root per section) -->
+<!-- Quick View Modal unique per section -->
 <div class="quickview-backdrop" id="qv-root-{{ section.id }}" hidden>
   <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Quick view">
     <button class="qv-close" aria-label="Close">×</button>
@@ -72,7 +71,7 @@ Product Grid QV — Complete section
 .card:hover img { transform:scale(1.05); }
 
 /* Hover overlay */
-.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .25s ease; text-align:center; padding:16px; }
+.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; text-align:center; padding:16px; }
 .card:hover .hover-overlay { opacity:1; }
 .card-title { font-size:18px; margin:0 0 8px; color:#fff; } /* white title */
 .card-price { font-weight:700; margin-bottom:8px; color:#fff; }
@@ -81,7 +80,7 @@ Product Grid QV — Complete section
 /* Quick View Modal */
 .quickview-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s ease; }
 .quickview-backdrop.active { opacity:1; pointer-events:auto; }
-.quickview-card { background:#fff; border-radius:12px; max-width:720px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
+.quickview-card { background:#fff; border-radius:12px; max-width:820px; width:94vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; box-shadow: 0 8px 24px rgba(0,0,0,.15); }
 .quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
 .qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:18px; }
 
@@ -112,305 +111,298 @@ Product Grid QV — Complete section
 
 <script>
 (function(){
-  // Unique elements for this section
-  const sectionId = {{ section.id }};
-  const sectionEl = document.getElementById('section-{{ section.id }}');
-  const ROOT = document.getElementById('qv-root-{{ section.id }}');
-  if (!sectionEl || !ROOT) return;
-
-  const CARD = ROOT.querySelector('.quickview-card');
-  const CLOSE = ROOT.querySelector('.qv-close');
-  const MEDIA = ROOT.querySelector('.qv-media');
-  const TITLE = ROOT.querySelector('.qv-title');
-  const PRICE = ROOT.querySelector('.qv-price');
-  const DESC  = ROOT.querySelector('.qv-desc');
-  const OPTS  = ROOT.querySelector('.qv-options');
-  const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
-  const STATUS = ROOT.querySelector('.qv-status');
-  const FORM = ROOT.querySelector('.qv-form');
-
-  // Base path that respects markets/locales
-  const BASE = (window.Shopify && Shopify.routes && Shopify.routes.root) || "{{ routes.root_url }}";
-  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket Black/Medium
-
-  function showModal(){ ROOT.hidden = false; requestAnimationFrame(()=> ROOT.classList.add('active')); }
-  function hideModal(){ ROOT.classList.remove('active'); setTimeout(()=> (ROOT.hidden = true), 250); }
-
-  // Money formatter using store currency
-  function formatMoney(cents){
-    try {
-      if (typeof cents !== 'number') cents = Number(cents);
-      if (isNaN(cents)) cents = 0;
-      return (cents/100).toLocaleString(undefined, { style: 'currency', currency: "{{ shop.currency }}" });
-    } catch(e){
-      return (cents/100).toFixed(2) + ' {{ shop.currency }}';
+  try {
+    const SECTION_ID = 'section-{{ section.id }}';
+    const ROOT_ID    = 'qv-root-{{ section.id }}';
+    const sectionEl  = document.getElementById(SECTION_ID);
+    const ROOT       = document.getElementById(ROOT_ID);
+    if (!sectionEl || !ROOT) {
+      console.warn('Prod Grid QV: Section or root modal not found (ids):', SECTION_ID, ROOT_ID);
+      return;
     }
-  }
 
-  // helper fetch that throws on non-OK (gives readable message)
-  function getJSON(url, opts){
-    return fetch(url, Object.assign({ headers:{ 'Accept':'application/json' } }, opts || {}))
-      .then(async r => {
-        if (!r.ok) {
-          const txt = await r.text().catch(()=> '');
-          throw new Error(txt || ('HTTP ' + r.status));
-        }
-        return r.json();
-      });
-  }
+    const CARD = ROOT.querySelector('.quickview-card');
+    const CLOSE = ROOT.querySelector('.qv-close');
+    const MEDIA = ROOT.querySelector('.qv-media');
+    const TITLE = ROOT.querySelector('.qv-title');
+    const PRICE = ROOT.querySelector('.qv-price');
+    const DESC  = ROOT.querySelector('.qv-desc');
+    const OPTS  = ROOT.querySelector('.qv-options');
+    const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
+    const STATUS = ROOT.querySelector('.qv-status');
+    const FORM = ROOT.querySelector('.qv-form');
 
-  // Update cart counter (tries common selectors)
-  function refreshCartCount(){
-    getJSON(BASE + 'cart.js').then(cart => {
-      // common Dawn selector or generic data attribute
-      const bubble = document.querySelector('#cart-icon-bubble .cart-count-bubble, .cart-count-bubble, [data-cart-count]');
-      if (bubble) {
-        if (bubble.classList && bubble.classList.contains('cart-count-bubble')) {
-          // if Dawn-like bubble with nested text
-          const text = bubble.querySelector('.text') || bubble;
-          text.textContent = cart.item_count;
-          bubble.hidden = cart.item_count <= 0;
-        } else {
-          bubble.textContent = cart.item_count;
-        }
+    const BASE = (window.Shopify && Shopify.routes && Shopify.routes.root) || "{{ routes.root_url }}";
+    const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket Black/Medium
+    const CURRENCY = "{{ shop.currency }}";
+
+    // helpers
+    function showModal(){ ROOT.hidden = false; requestAnimationFrame(()=> ROOT.classList.add('active')); }
+    function hideModal(){ ROOT.classList.remove('active'); setTimeout(()=> (ROOT.hidden = true), 250); }
+
+    function formatMoney(cents){
+      try {
+        cents = Number(cents);
+        if (isNaN(cents)) cents = 0;
+        return (cents/100).toLocaleString(undefined, { style: 'currency', currency: CURRENCY });
+      } catch(e) {
+        return (cents/100).toFixed(2) + ' ' + CURRENCY;
       }
-    }).catch(()=>{ /* ignore errors */ });
-  }
-
-  // Build dynamic options UI (detect color & size indices)
-  function buildOptions(product, currentVariant){
-    OPTS.innerHTML = '';
-    // find option indices by name (case-insensitive)
-    const optNames = product.options || [];
-    const colorIndex = optNames.findIndex(n => /color|colour/i.test(n));
-    const sizeIndex  = optNames.findIndex(n => /size/i.test(n));
-
-    // Helper: unique values for a given option index (1-based)
-    function uniqueFor(idx){
-      const key = 'option' + idx;
-      const s = new Set();
-      (product.variants || []).forEach(v => { if (v[key]) s.add(v[key]); });
-      return Array.from(s);
     }
 
-    // COLOR as blocks (if color option exists)
-    if (colorIndex !== -1){
-      const values = uniqueFor(colorIndex+1);
-      const label = document.createElement('label'); label.textContent = optNames[colorIndex] || 'Color';
-      const wrapper = document.createElement('div'); wrapper.className = 'color-blocks';
-      values.forEach(v => {
-        const block = document.createElement('div');
-        block.className = 'color-block';
-        block.textContent = v;
-        block.dataset.value = v;
-        block.addEventListener('click', () => {
-          wrapper.querySelectorAll('.color-block').forEach(x=>x.classList.remove('active'));
-          block.classList.add('active');
-          updateVariant();
+    function getJSON(url, opts){
+      return fetch(url, Object.assign({ headers:{ 'Accept':'application/json' } }, opts || {}))
+        .then(async r => {
+          if (!r.ok) {
+            const txt = await r.text().catch(()=> '');
+            throw new Error(txt || ('HTTP ' + r.status));
+          }
+          return r.json();
         });
-        wrapper.appendChild(block);
-      });
-      OPTS.appendChild(label);
-      OPTS.appendChild(wrapper);
     }
 
-    // SIZE as dropdown (if size option exists)
-    if (sizeIndex !== -1){
-      const values = uniqueFor(sizeIndex+1);
-      const label = document.createElement('label'); label.textContent = optNames[sizeIndex] || 'Size';
-      const sel = document.createElement('select');
-      // placeholder
-      sel.appendChild(new Option('Choose your size', ''));
-      values.forEach(v => sel.appendChild(new Option(v, v)));
-      sel.addEventListener('change', updateVariant);
-      OPTS.appendChild(label);
-      OPTS.appendChild(sel);
+    function refreshCartCount(){
+      getJSON(BASE + 'cart.js').then(cart => {
+        // common selectors used by many themes
+        const bubble = document.querySelector('#cart-icon-bubble .cart-count-bubble, .cart-count-bubble, [data-cart-count]');
+        if (bubble) {
+          if (bubble.classList && bubble.classList.contains('cart-count-bubble')) {
+            const text = bubble.querySelector('.text') || bubble;
+            text.textContent = cart.item_count;
+            bubble.hidden = cart.item_count <= 0;
+          } else {
+            bubble.textContent = cart.item_count;
+          }
+        }
+      }).catch(()=>{ /* ignore */ });
     }
 
-    // If there are other options (not color/size), render them as generic selects
-    optNames.forEach((name, idx) => {
-      if (idx === colorIndex || idx === sizeIndex) return;
-      const values = uniqueFor(idx+1);
-      if (values.length === 0) return;
-      const label = document.createElement('label'); label.textContent = name;
-      const sel = document.createElement('select');
-      sel.appendChild(new Option('Choose', ''));
-      values.forEach(v => sel.appendChild(new Option(v, v)));
-      sel.addEventListener('change', updateVariant);
-      OPTS.appendChild(label);
-      OPTS.appendChild(sel);
-    });
+    // Build options UI (color blocks + size select). product is /products/{handle}.js object
+    function buildOptions(product){
+      OPTS.innerHTML = '';
+      if (!product) return;
 
-    // set initial selection (no selection for size to avoid auto-XS)
-    // set active color if currentVariant has color
-    if (colorIndex !== -1 && currentVariant && currentVariant['option' + (colorIndex+1)]) {
-      const blocks = OPTS.querySelectorAll('.color-block');
-      blocks.forEach(b => {
-        if (b.dataset.value === currentVariant['option' + (colorIndex+1)]) b.classList.add('active');
-      });
-    }
-    if (sizeIndex !== -1 && currentVariant && currentVariant['option' + (sizeIndex+1)]) {
-      const sel = OPTS.querySelector('select');
-      if (sel) {
-        // do NOT auto-select size: keep placeholder unless you want preselect
-        // sel.value = currentVariant['option' + (sizeIndex+1)];
+      const optNames = product.options || [];
+      const colorIndex = optNames.findIndex(n => /color|colour/i.test(n));
+      const sizeIndex  = optNames.findIndex(n => /size/i.test(n));
+
+      // Unique values helper
+      function uniqueFor(idx){
+        const key = 'option' + idx;
+        const set = new Set();
+        (product.variants || []).forEach(v => { if (v[key]) set.add(v[key]); });
+        return Array.from(set);
       }
+
+      // Color blocks
+      if (colorIndex !== -1) {
+        const label = document.createElement('label'); label.textContent = optNames[colorIndex] || 'Color';
+        const wrap = document.createElement('div'); wrap.className = 'color-blocks';
+        uniqueFor(colorIndex+1).forEach(val => {
+          const b = document.createElement('div');
+          b.className = 'color-block';
+          b.textContent = val;
+          b.dataset.value = val;
+          b.addEventListener('click', () => {
+            wrap.querySelectorAll('.color-block').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            updateVariant(product);
+          });
+          wrap.appendChild(b);
+        });
+        OPTS.appendChild(label);
+        OPTS.appendChild(wrap);
+      }
+
+      // Size select (with placeholder)
+      if (sizeIndex !== -1) {
+        const label = document.createElement('label'); label.textContent = optNames[sizeIndex] || 'Size';
+        const sel = document.createElement('select');
+        sel.appendChild(new Option('Choose your size', ''));
+        uniqueFor(sizeIndex+1).forEach(s => sel.appendChild(new Option(s, s)));
+        sel.addEventListener('change', () => updateVariant(product));
+        OPTS.appendChild(label);
+        OPTS.appendChild(sel);
+      }
+
+      // Any remaining options render as selects
+      optNames.forEach((name, idx) => {
+        if (idx === colorIndex || idx === sizeIndex) return;
+        const values = uniqueFor(idx+1);
+        if (!values.length) return;
+        const label = document.createElement('label'); label.textContent = name;
+        const sel = document.createElement('select');
+        sel.appendChild(new Option('Choose', ''));
+        values.forEach(v => sel.appendChild(new Option(v, v)));
+        sel.addEventListener('change', () => updateVariant(product));
+        OPTS.appendChild(label);
+        OPTS.appendChild(sel);
+      });
+
+      // clear variant input initially to force selection (especially size)
+      VAR_INPUT.value = '';
+      // display base price (min)
+      PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
     }
 
-    // Update variant based on current selections
-    function updateVariant(){
+    function updateVariant(product){
+      // Build current selection array by product.options order
       const chosen = [];
-      // loop through product.options order
       (product.options || []).forEach((name, i) => {
         const idx = i + 1;
-        let val = '';
         // color
-        if (colorIndex === i) {
-          const active = OPTS.querySelector('.color-block.active');
-          if (active) val = active.dataset.value;
-        } else if (sizeIndex === i) {
-          const sel = Array.from(OPTS.querySelectorAll('select'))[0];
-          if (sel) val = sel.value;
-        } else {
-          // other selects - pick corresponding select in DOM by order (approx)
-          // find selects after color/size we've added in sequence
-          // fallback: try to find any select with label matching name
-          const selects = Array.from(OPTS.querySelectorAll('select'));
-          let found = '';
-          for (const s of selects) {
-            const lbl = s.previousSibling;
-            if (lbl && lbl.textContent === name) { found = s.value; break; }
-          }
-          val = found || '';
+        const colorBlocks = OPTS.querySelectorAll('.color-block');
+        if (colorBlocks.length) {
+          const active = Array.from(colorBlocks).find(b => b.classList.contains('active'));
+          if (active) { chosen.push(active.dataset.value); return; }
         }
-        chosen.push(val);
+        // selects
+        const selects = Array.from(OPTS.querySelectorAll('select'));
+        // heuristics: first select after its label corresponds to first non-color option encountered
+        // find select with previous label text matching name
+        let selVal = '';
+        for (const s of selects) {
+          const lbl = s.previousSibling;
+          if (lbl && lbl.textContent === name) {
+            selVal = s.value; break;
+          }
+        }
+        chosen.push(selVal || '');
       });
 
-      // find variant matching chosen (empty selection fields allowed)
+      // Find variant that matches chosen values (empty values act as wildcard)
       const found = (product.variants || []).find(v => {
-        return chosen.every((selVal, j) => {
-          if (!selVal) return true; // if user didn't choose that option, treat as wildcard
+        return chosen.every((val, j) => {
+          if (!val) return true;
           const key = 'option' + (j+1);
-          return v[key] === selVal;
+          return v[key] === val;
         });
       });
 
-      if (found){
+      if (found) {
         VAR_INPUT.value = found.id;
         PRICE.textContent = formatMoney(found.price);
         STATUS.textContent = '';
       } else {
         VAR_INPUT.value = '';
-        // if size option exists and not chosen, show friendly message on Add attempt
-        PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
+        // keep price at min or fallback
       }
     }
 
-    // expose updateVariant for use inside click handlers
-    // call once to make sure price shows minimum
-    updateVariant();
-  } // end buildOptions
+    // Open quick view for a handle
+    function openQuickView(handle){
+      if (!handle) return;
+      console.debug('Prod Grid QV: opening quick view for', handle);
+      STATUS.textContent = 'Loading…';
+      getJSON(BASE + 'products/' + encodeURIComponent(handle) + '.js')
+        .then(product => {
+          TITLE.textContent = product.title || '';
+          const img = product.images && product.images[0] ? product.images[0] : null;
+          MEDIA.innerHTML = img ? '<img src="' + img + '" alt="' + (product.title||'') + '">' : '';
+          PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
+          setTimeout(()=> setDescription(product.body_html), 0);
 
-  // Load product JSON and open modal
-  sectionEl.addEventListener('click', function(e){
-    const btn = e.target.closest('.quick-btn');
-    if (!btn) return;
-    const handle = btn.getAttribute('data-handle');
-    if (!handle) return;
+          // Clear any previous selection to force user choice for size
+          VAR_INPUT.value = '';
 
-    STATUS.textContent = 'Loading…';
-    getJSON(BASE + 'products/' + encodeURIComponent(handle) + '.js')
-      .then(product => {
-        // Title, image, price min, description
-        TITLE.textContent = product.title || '';
-        const firstImg = product.images && product.images.length ? product.images[0] : null;
-        MEDIA.innerHTML = firstImg ? '<img src="' + firstImg + '" alt="' + (product.title || '') + '">' : '';
-        PRICE.textContent = formatMoney(product.price_min || (product.variants && product.variants[0] && product.variants[0].price) || 0);
-        setTimeout(()=> setDescription(product.body_html), 0);
+          // build options UI for this product
+          buildOptions(product);
 
-        // set variant input empty initially (force user to select size)
-        VAR_INPUT.value = '';
+          // store product object for updateVariant closures (attach to ROOT)
+          ROOT._qv_current_product = product;
 
-        // build options UI and let user choose
-        buildOptions(product, {});
+          STATUS.textContent = '';
+          showModal();
+        })
+        .catch(err => {
+          console.error('Prod Grid QV: error loading product', err);
+          STATUS.textContent = 'Unable to load product: ' + (err.message || err);
+          showModal();
+        });
+    }
 
-        STATUS.textContent = '';
-        showModal();
+    function setDescription(html){
+      try {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        DESC.textContent = (tmp.textContent || '').trim();
+      } catch(e){ DESC.textContent = ''; }
+    }
+
+    // Document-level click handler (robust for Theme Editor)
+    document.addEventListener('click', function(ev){
+      const btn = ev.target.closest('.quick-btn');
+      if (!btn) return;
+      // ensure button is inside THIS section
+      if (!sectionEl.contains(btn)) return;
+      ev.preventDefault();
+      const handle = btn.getAttribute('data-handle');
+      openQuickView(handle);
+    });
+
+    // Close handlers
+    CLOSE.addEventListener('click', hideModal);
+    ROOT.addEventListener('click', (e)=> { if (e.target === ROOT) hideModal(); });
+    document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && ROOT.classList.contains('active')) hideModal(); });
+
+    // Form submit (Add to cart)
+    FORM.addEventListener('submit', function(e){
+      e.preventDefault();
+      const variantId = VAR_INPUT.value;
+      // check size if exists: find select labelled Size (heuristic)
+      const sizeSelect = Array.from(OPTS.querySelectorAll('select')).find(s => (s.previousSibling && /size/i.test(s.previousSibling.textContent)));
+      const sizeRequired = !!sizeSelect;
+      if (sizeRequired && (!sizeSelect.value || sizeSelect.value === '')) {
+        STATUS.textContent = 'Please choose your size.';
+        return;
+      }
+      if (!variantId) {
+        STATUS.textContent = 'Please select product options.';
+        return;
+      }
+
+      STATUS.textContent = 'Adding…';
+      getJSON(BASE + 'cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ id: Number(variantId), quantity: 1 })
+      })
+      .then(added => {
+        STATUS.textContent = added.product_title + ' added ✅';
+        refreshCartCount();
+
+        // check color & size to trigger bundle
+        const color = OPTS.querySelector('.color-block.active')?.textContent || '';
+        const size = (sizeSelect && sizeSelect.value) || '';
+        if (color === 'Black' && size === 'Medium') {
+          // avoid duplicates
+          getJSON(BASE + 'cart.js').then(cart => {
+            const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
+            if (!exists) {
+              return getJSON(BASE + 'cart/add.js', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+                body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
+              }).then(() => {
+                STATUS.textContent += ' + Soft Winter Jacket added 🎉';
+                refreshCartCount();
+              });
+            }
+          }).catch(()=>{ /* ignore */ });
+        }
       })
       .catch(err => {
-        STATUS.textContent = 'Unable to load product: ' + err.message;
-        showModal();
+        console.error('Prod Grid QV add error', err);
+        STATUS.textContent = 'Could not add to cart: ' + (err.message || err);
       });
-  });
-
-  // Helpers
-  function setDescription(html){
-    try {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html || '';
-      const text = tmp.textContent || tmp.innerText || '';
-      DESC.textContent = text.trim();
-    } catch(e){ DESC.textContent = ''; }
-  }
-
-  // Close handlers
-  CLOSE.addEventListener('click', hideModal);
-  ROOT.addEventListener('click', (e)=> { if (e.target === ROOT) hideModal(); });
-  document.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && ROOT.classList.contains('active')) hideModal(); });
-
-  // Add to cart behavior
-  FORM.addEventListener('submit', function(e){
-    e.preventDefault();
-    const variantId = VAR_INPUT.value;
-    // Determine whether product requires size and whether chosen
-    const sizeSelect = OPTS.querySelector('select');
-    const sizeRequired = !!sizeSelect; // we treat presence of size select as required
-    if (sizeRequired && (!sizeSelect.value || sizeSelect.value === '')) {
-      STATUS.textContent = 'Please choose your size.';
-      return;
-    }
-    if (!variantId) {
-      STATUS.textContent = 'Please select product options.';
-      return;
-    }
-
-    STATUS.textContent = 'Adding…';
-    getJSON(BASE + 'cart/add.js', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-      body: JSON.stringify({ id: Number(variantId), quantity: 1 })
-    })
-    .then(added => {
-      STATUS.textContent = added.product_title + ' added ✅';
-      refreshCartCount();
-
-      // Check the selected color and size for special bundle rule
-      const colorActive = OPTS.querySelector('.color-block.active')?.textContent || '';
-      const sizeVal = (OPTS.querySelector('select') && OPTS.querySelector('select').value) || '';
-      if (colorActive === 'Black' && sizeVal === 'Medium') {
-        // only add jacket if not already in cart
-        getJSON(BASE + 'cart.js').then(cart => {
-          const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
-          if (!exists) {
-            return getJSON(BASE + 'cart/add.js', {
-              method:'POST',
-              headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-              body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
-            }).then(() => {
-              STATUS.textContent += ' + Soft Winter Jacket added 🎉';
-              refreshCartCount();
-            });
-          }
-        }).catch(()=>{ /* ignore */ });
-      }
-    })
-    .catch(err => {
-      STATUS.textContent = 'Could not add to cart: ' + err.message;
     });
-  });
 
-  // initial hide
-  ROOT.hidden = true;
+    // initial hide
+    ROOT.hidden = true;
+
+  } catch (err) {
+    console.error('Prod Grid QV fatal error', err);
+  }
 })();
 </script>
 
