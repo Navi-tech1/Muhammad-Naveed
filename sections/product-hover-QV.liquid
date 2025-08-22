@@ -97,157 +97,62 @@
 </style>
 
 <script>
-(function(){
-  const ROOT = document.querySelector('[data-qv-root]');
-  if (!ROOT) return;
+function formatMoney(cents) {
+  return (cents / 100).toLocaleString(undefined, { 
+    style: "currency", 
+    currency: "{{ shop.currency }}" 
+  });
+}
 
-  const CARD = ROOT.querySelector('.quickview-card');
-  const CLOSE = ROOT.querySelector('.qv-close');
-  const MEDIA = ROOT.querySelector('.qv-media');
-  const TITLE = ROOT.querySelector('.qv-title');
-  const PRICE = ROOT.querySelector('.qv-price');
-  const DESC  = ROOT.querySelector('.qv-desc');
-  const OPTS  = ROOT.querySelector('.qv-options');
-  const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
-  const STATUS = ROOT.querySelector('.qv-status');
-  const FORM = ROOT.querySelector('.qv-form');
-  const BASE = (window.Shopify && Shopify.routes && Shopify.routes.root) || "{{ routes.root_url }}";
-  const JACKET_VARIANT_ID = 9843130663219;
+function buildOptions(product, currentVariant){
+  OPTS.innerHTML = '';
 
-  function formatMoney(cents){
-    const moneyFormat = "{{ shop.money_format | replace: '"', '\"' }}";
-    let value = (cents / 100).toFixed(2);
-    return moneyFormat.replace("{{amount}}", value);
-  }
-
-  function showModal(){ ROOT.hidden = false; requestAnimationFrame(()=> ROOT.classList.add('active')); }
-  function hideModal(){ ROOT.classList.remove('active'); setTimeout(()=> (ROOT.hidden = true), 250); }
-
-  function getJSON(url, opts){
-    return fetch(url, Object.assign({ headers:{ 'Accept':'application/json' } }, opts || {}))
-      .then(async r => {
-        if (!r.ok) throw new Error(await r.text() || ('HTTP '+r.status));
-        return r.json();
-      });
-  }
-
-  function buildOptions(product, currentVariant){
-    OPTS.innerHTML = '';
-
-    // Color options as blocks
-    if (product.options.includes("Color")) {
-      const colors = [...new Set(product.variants.map(v => v.option1))];
-      const wrap = document.createElement('div');
-      wrap.className = "color-blocks";
-      colors.forEach(c => {
-        const div = document.createElement('div');
-        div.className = "color-block" + (c === currentVariant.option1 ? " active" : "");
-        div.textContent = c;
-        div.onclick = ()=> {
-          wrap.querySelectorAll('.color-block').forEach(el=>el.classList.remove('active'));
-          div.classList.add('active');
-          updateVariant();
-        };
-        wrap.appendChild(div);
-      });
-      const label = document.createElement('label'); label.textContent = "Color";
-      OPTS.append(label, wrap);
-    }
-
-    // Size as dropdown
-    if (product.options.includes("Size")) {
-      const sizes = [...new Set(product.variants.map(v => v.option2))];
-      const sel = document.createElement('select');
-      sizes.forEach(s => sel.append(new Option(s, s)));
-      sel.value = currentVariant.option2;
-      sel.onchange = updateVariant;
-      const label = document.createElement('label'); label.textContent = "Size";
-      OPTS.append(label, sel);
-    }
-
-    function updateVariant(){
-      const color = OPTS.querySelector('.color-block.active')?.textContent;
-      const size  = OPTS.querySelector('select')?.value;
-      const found = product.variants.find(v =>
-        (!color || v.option1===color) && (!size || v.option2===size)
-      );
-      if (found){
-        VAR_INPUT.value = found.id;
-        PRICE.textContent = formatMoney(found.price);
-      }
-    }
-    updateVariant();
-  }
-
-  function setDescription(html){
-    const tmp = document.createElement('div'); tmp.innerHTML = html || '';
-    DESC.textContent = (tmp.textContent || '').trim();
-  }
-
-  function refreshCartCount(){
-    getJSON(`${BASE}cart.js`).then(cart => {
-      const bubble = document.querySelector('.cart-count-bubble, [data-cart-count]');
-      if (bubble) bubble.textContent = cart.item_count;
+  // Color options as blocks
+  if (product.options.includes("Color")) {
+    const colors = [...new Set(product.variants.map(v => v.option1))];
+    const wrap = document.createElement('div');
+    wrap.className = "color-blocks";
+    colors.forEach(c => {
+      const div = document.createElement('div');
+      div.className = "color-block";
+      div.textContent = c;
+      div.onclick = ()=> {
+        wrap.querySelectorAll('.color-block').forEach(el=>el.classList.remove('active'));
+        div.classList.add('active');
+        updateVariant();
+      };
+      wrap.appendChild(div);
     });
+    const label = document.createElement('label'); label.textContent = "Color";
+    OPTS.append(label, wrap);
   }
 
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest('.quick-btn');
-    if (!btn) return;
-    const handle = btn.getAttribute('data-handle');
-    STATUS.textContent = 'Loading…';
-    getJSON(`${BASE}products/${encodeURIComponent(handle)}.js`)
-      .then(product => {
-        TITLE.textContent = product.title;
-        MEDIA.innerHTML = product.images.length ? `<img src="${product.images[0]}" alt="${product.title}">` : '';
-        const firstVariant = product.variants[0];
-        PRICE.textContent = formatMoney(firstVariant.price);
-        setDescription(product.body_html);
-        VAR_INPUT.value = firstVariant.id;
-        buildOptions(product, firstVariant);
-        STATUS.textContent = '';
-        showModal();
-      })
-      .catch(err => { STATUS.textContent = 'Unable to load product: ' + err.message; showModal(); });
-  });
+  // Size as dropdown
+  if (product.options.includes("Size")) {
+    const sizes = [...new Set(product.variants.map(v => v.option2))];
+    const sel = document.createElement('select');
+    sel.append(new Option("Choose your size", ""));
+    sizes.forEach(s => sel.append(new Option(s, s)));
+    sel.onchange = updateVariant;
+    const label = document.createElement('label'); label.textContent = "Size";
+    OPTS.append(label, sel);
+  }
 
-  CLOSE.addEventListener('click', hideModal);
-  ROOT.addEventListener('click', e=>{ if(e.target===ROOT) hideModal(); });
+  function updateVariant(){
+    const color = OPTS.querySelector('.color-block.active')?.textContent;
+    const size  = OPTS.querySelector('select')?.value;
+    const found = product.variants.find(v =>
+      (!color || v.option1===color) && (!size || v.option2===size)
+    );
+    if (found){
+      VAR_INPUT.value = found.id;
+      PRICE.textContent = formatMoney(found.price);
+    } else {
+      VAR_INPUT.value = '';
+    }
+  }
+}
 
-  FORM.addEventListener('submit', function(e){
-    e.preventDefault();
-    const variantId = VAR_INPUT.value;
-    if (!variantId) { STATUS.textContent = 'Please select options.'; return; }
-
-    STATUS.textContent = 'Adding…';
-    getJSON(`${BASE}cart/add.js`, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-      body: JSON.stringify({ id: Number(variantId), quantity: 1 })
-    })
-    .then(added => {
-      STATUS.textContent = `${added.product_title} added ✅`;
-      refreshCartCount();
-
-      // Bundle rule
-      const color = OPTS.querySelector('.color-block.active')?.textContent;
-      const size  = OPTS.querySelector('select')?.value;
-      if (color==="Black" && size==="Medium"){
-        getJSON(`${BASE}cart.js`).then(cart => {
-          const exists = cart.items.some(item => item.id == JACKET_VARIANT_ID);
-          if (!exists){
-            return getJSON(`${BASE}cart/add.js`, {
-              method:'POST',
-              headers:{ 'Content-Type':'application/json','Accept':'application/json' },
-              body: JSON.stringify({ id: JACKET_VARIANT_ID, quantity: 1 })
-            }).then(()=> STATUS.textContent += ' + Jacket auto-added 🎉');
-          }
-        });
-      }
-    })
-    .catch(err => STATUS.textContent = 'Could not add: ' + err.message);
-  });
-})();
 </script>
 
 {% schema %}
