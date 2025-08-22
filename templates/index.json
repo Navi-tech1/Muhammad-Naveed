@@ -76,61 +76,61 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qcEx6G": {
+    "product_hover_yigtjQ": {
       "type": "product-hover",
       "blocks": {
-        "product_1_GtXhXb": {
-          "type": "product_1",
+        "product1_EKGFkb": {
+          "type": "product1",
           "settings": {
             "product": "black-leather-bag"
           }
         },
-        "product_2_aRdGT3": {
-          "type": "product_2",
+        "product2_wQKXGi": {
+          "type": "product2",
+          "settings": {
+            "product": "navy-sport-jacket"
+          }
+        },
+        "product3_8a4Fch": {
+          "type": "product3",
           "settings": {
             "product": "blue-silk-tuxedo"
           }
         },
-        "product_3_JaBRaq": {
-          "type": "product_3",
+        "product4_EdTFd6": {
+          "type": "product4",
           "settings": {
-            "product": "classic-leather-jacket"
+            "product": "red-sports-tee"
           }
         },
-        "product_4_7fmxtt": {
-          "type": "product_4",
-          "settings": {
-            "product": "classic-varsity-top"
-          }
-        },
-        "product_5_cg8tUR": {
-          "type": "product_5",
+        "product5_LCjzEe": {
+          "type": "product5",
           "settings": {
             "product": "dark-denim-top"
           }
         },
-        "product_6_BtVedn": {
-          "type": "product_6",
+        "product6_RnJmMP": {
+          "type": "product6",
           "settings": {
-            "product": "navy-sport-jacket"
+            "product": "floral-white-top"
           }
         }
       },
       "block_order": [
-        "product_1_GtXhXb",
-        "product_2_aRdGT3",
-        "product_3_JaBRaq",
-        "product_4_7fmxtt",
-        "product_5_cg8tUR",
-        "product_6_BtVedn"
+        "product1_EKGFkb",
+        "product2_wQKXGi",
+        "product3_8a4Fch",
+        "product4_EdTFd6",
+        "product5_LCjzEe",
+        "product6_RnJmMP"
       ],
-      "name": "Product Grid QuickView",
+      "name": "Product Grid QV",
       "settings": {}
     }
   },
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qcEx6G"
+    "product_hover_yigtjQ"
   ]
 }
