@@ -36,15 +36,11 @@
         <h3 class="qv-title"></h3>
         <div class="qv-price"></div>
         <div class="qv-desc"></div>
-
         <form class="qv-form">
           <div class="qv-options"></div>
           <input type="hidden" name="id" class="qv-variant-id" />
-          <button type="submit" class="qv-add">
-            ADD TO CART <span class="arrow">→</span>
-          </button>
+          <button type="submit" class="qv-add">ADD TO CART →</button>
         </form>
-
         <div class="qv-status" role="status" aria-live="polite"></div>
       </div>
     </div>
@@ -52,56 +48,38 @@
 </div>
 
 <style>
-/* Grid */
 .custom-grid .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-@media (min-width:768px){ .custom-grid .grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
-
+@media(min-width:768px){ .custom-grid .grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
 .card { border:1px solid rgba(0,0,0,.08); border-radius:12px; overflow:hidden; position:relative; transition:transform .25s ease; }
 .card:hover { transform:translateY(-4px); }
-.card-media img { width:100%; height:auto; display:block; transition:transform .3s ease; }
+.card-media img { width:100%; transition:transform .3s ease; }
 .card:hover img { transform:scale(1.05); }
-
-/* Overlay */
-.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; text-align:center; padding:16px; }
+.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; }
 .card:hover .hover-overlay { opacity:1; }
-.card-title { font-size:18px; margin:0 0 8px; color:#fff; }
-.card-price { font-weight:700; margin-bottom:8px; color:#fff; }
+.card-title,.card-price{color:#fff;}
 .quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
 
-/* Quick View Modal */
 .quickview-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s ease; }
 .quickview-backdrop.active { opacity:1; pointer-events:auto; }
-.quickview-card { background:#fff; border-radius:12px; max-width:720px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
+.quickview-card { background:#fff; border-radius:12px; max-width:800px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
 .quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
-.qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; font-size:18px; }
-
-/* Modal content */
+.qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; }
 .qv-content { display:grid; gap:20px; }
-@media(min-width:768px){ .qv-content { grid-template-columns:1fr 1fr; gap:24px; } }
-.qv-media img { width:100%; border-radius:8px; display:block; }
-.qv-title { font-size:20px; margin:0 0 6px; }
-.qv-price { font-weight:700; margin-bottom:10px; }
-.qv-desc { font-size:14px; margin-bottom:14px; opacity:.9; }
-
-/* Options */
-.qv-options label { display:block; font-size:12px; margin:8px 0 4px; color:#333; text-align:left; }
-.qv-options select, .qv-options .color-block { width:100%; padding:10px; border:1px solid #ddd; border-radius:4px; margin-bottom:10px; background:#fff; cursor:pointer; text-align:center; }
-.color-block.active { border-color:#000; background:#000; color:#fff; }
-
-/* Add to cart button */
-.qv-add { background:#000; color:#fff; border:none; padding:12px 16px; border-radius:4px; cursor:pointer; font-weight:600; width:100%; text-align:center; }
-.qv-add .arrow { margin-left:8px; font-size:16px; }
-.qv-status { margin-top:10px; font-size:14px; color:green; text-align:left; }
-
-.placeholder { border:1px dashed rgba(0,0,0,.2); border-radius:12px; padding:40px; text-align:center; color:#666; }
+@media(min-width:768px){ .qv-content{grid-template-columns:1fr 1fr; gap:24px;} }
+.qv-media img{width:100%; border-radius:8px;}
+.qv-title{font-size:20px; margin:0 0 6px;}
+.qv-price{font-weight:700; margin-bottom:10px;}
+.qv-desc{font-size:14px; margin-bottom:14px; opacity:.9;}
+.qv-options label{font-size:12px; margin:8px 0 4px; display:block;}
+.qv-options select{width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; margin-bottom:10px;}
+.qv-add{background:#000; color:#fff; padding:12px 16px; border-radius:4px; width:100%; font-weight:600; cursor:pointer;}
+.qv-status{margin-top:10px; font-size:14px; color:green;}
 </style>
 
 <script>
 (function(){
   const BASE = window.Shopify.routes.root;
   const ROOT = document.querySelector('[data-qv-root]');
-  const CARD = ROOT.querySelector('.quickview-card');
-  const CLOSE = ROOT.querySelector('.qv-close');
   const MEDIA = ROOT.querySelector('.qv-media');
   const TITLE = ROOT.querySelector('.qv-title');
   const PRICE = ROOT.querySelector('.qv-price');
@@ -110,28 +88,21 @@
   const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
   const FORM = ROOT.querySelector('.qv-form');
   const STATUS = ROOT.querySelector('.qv-status');
-  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket ID
+  const CLOSE = ROOT.querySelector('.qv-close');
+  const JACKET_VARIANT_ID = 9843130663219;
 
-  function formatMoney(cents) {
-    return (cents / 100).toLocaleString(undefined, { style: "currency", currency: "{{ shop.currency }}" });
-  }
+  function formatMoney(cents){ return (cents/100).toLocaleString(undefined,{style:"currency",currency:"{{ shop.currency }}"}) }
+  function getJSON(url,opts){ return fetch(url,opts).then(r=>r.json()); }
 
-  // Utility fetch
-  function getJSON(url, opts){
-    return fetch(url, opts).then(r=>r.json());
-  }
-
-  // Open modal
   document.querySelectorAll('.quick-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const handle = btn.getAttribute('data-handle');
-      getJSON(BASE + 'products/' + handle + '.js').then(prod=>{
-        ROOT.hidden=false;
-        ROOT.classList.add('active');
-        MEDIA.innerHTML = `<img src="${prod.featured_image}" alt="${prod.title}">`;
-        TITLE.textContent = prod.title;
-        PRICE.textContent = formatMoney(prod.price);
-        DESC.textContent = prod.description;
+    btn.addEventListener('click',()=>{
+      const handle=btn.dataset.handle;
+      getJSON(BASE+'products/'+handle+'.js').then(prod=>{
+        ROOT.hidden=false; ROOT.classList.add('active');
+        MEDIA.innerHTML=`<img src="${prod.featured_image}" alt="${prod.title}">`;
+        TITLE.textContent=prod.title;
+        PRICE.textContent=formatMoney(prod.price);
+        DESC.textContent=prod.description.replace(/<\/?[^>]+(>|$)/g,""); // strip HTML
 
         buildOptions(prod);
         STATUS.textContent='';
@@ -139,96 +110,66 @@
     });
   });
 
-  CLOSE.addEventListener('click', ()=>{ ROOT.classList.remove('active'); setTimeout(()=>ROOT.hidden=true,200); });
+  CLOSE.addEventListener('click',()=>{ ROOT.classList.remove('active'); setTimeout(()=>ROOT.hidden=true,200); });
 
-  // Build options
   function buildOptions(product){
-    OPTS.innerHTML = '';
-    let sizeSelect;
-
-    // Colors
-    if (product.options.includes("Color")) {
-      const colors = [...new Set(product.variants.map(v=>v.option1))];
-      const wrap = document.createElement('div');
-      wrap.className="color-blocks";
-      colors.forEach(c=>{
-        const div=document.createElement('div');
-        div.className="color-block";
-        div.textContent=c;
-        div.onclick=()=>{ wrap.querySelectorAll('.color-block').forEach(el=>el.classList.remove('active')); div.classList.add('active'); updateVariant(); };
-        wrap.appendChild(div);
-      });
-      OPTS.appendChild(wrap);
-    }
-
-    // Sizes
-    if (product.options.includes("Size")) {
-      sizeSelect=document.createElement('select');
-      sizeSelect.append(new Option("Choose size",""));
-      const sizes=[...new Set(product.variants.map(v=>v.option2))];
-      sizes.forEach(s=>sizeSelect.append(new Option(s,s)));
-      sizeSelect.onchange=updateVariant;
-      OPTS.appendChild(sizeSelect);
-    }
-
-    function updateVariant(){
-      const color = OPTS.querySelector('.color-block.active')?.textContent;
-      const size = sizeSelect?.value;
-      const found = product.variants.find(v =>
-        (!color || v.option1===color) && (!size || v.option2===size)
-      );
-      if(found){
-        VAR_INPUT.value=found.id;
-        PRICE.textContent=formatMoney(found.price);
-      } else {
-        VAR_INPUT.value='';
-      }
-    }
+    OPTS.innerHTML='';
+    product.options.forEach((opt,optIndex)=>{
+      const label=document.createElement('label');
+      label.textContent=opt;
+      const select=document.createElement('select');
+      select.dataset.index=optIndex+1;
+      select.innerHTML=`<option value="">Choose ${opt}</option>`;
+      const values=[...new Set(product.variants.map(v=>v['option'+(optIndex+1)]))];
+      values.forEach(v=>select.append(new Option(v,v)));
+      select.onchange=()=>updateVariant(product);
+      OPTS.appendChild(label);
+      OPTS.appendChild(select);
+    });
   }
 
-  // Add to cart
-  FORM.addEventListener('submit', function(e){
-    e.preventDefault();
-    const variantId = VAR_INPUT.value;
-    if(!variantId){ STATUS.textContent="Please select options"; return; }
+  function updateVariant(product){
+    const selects=OPTS.querySelectorAll('select');
+    const chosen=[...selects].map(s=>s.value);
+    const found=product.variants.find(v=>chosen.every((val,i)=>!val||v['option'+(i+1)]===val));
+    if(found){ VAR_INPUT.value=found.id; PRICE.textContent=formatMoney(found.price); }
+    else { VAR_INPUT.value=''; }
+  }
 
+  FORM.addEventListener('submit',function(e){
+    e.preventDefault();
+    const variantId=VAR_INPUT.value;
+    if(!variantId){ STATUS.textContent="Please select all options"; return; }
     getJSON(BASE+'cart/add.js',{
       method:'POST',
       headers:{'Content-Type':'application/json','Accept':'application/json'},
       body:JSON.stringify({id:Number(variantId),quantity:1})
-    })
-    .then(added=>{
+    }).then(added=>{
       STATUS.textContent=added.product_title+' added ✅';
       refreshCartCount();
 
-      // Always add Soft Winter Jacket if not already in cart
-      getJSON(BASE+'cart.js').then(cart=>{
-        const exists=cart.items.some(item=>item.id==JACKET_VARIANT_ID);
-        if(!exists){
-          return getJSON(BASE+'cart/add.js',{
-            method:'POST',
-            headers:{'Content-Type':'application/json','Accept':'application/json'},
-            body:JSON.stringify({id:JACKET_VARIANT_ID,quantity:1})
-          }).then(()=>{
-            STATUS.textContent+=' + Soft Winter Jacket added 🎉';
-            refreshCartCount();
-            if(window.Shopify && Shopify.theme && Shopify.theme.cart && Shopify.theme.cart.open){
-              Shopify.theme.cart.open();
-            }
-          });
-        }
-      });
-    })
-    .catch(()=>{ STATUS.textContent="Error adding to cart"; });
+      // Only add Soft Winter Jacket if Black + Medium selected
+      const selects=OPTS.querySelectorAll('select');
+      let selectedVals=[...selects].map(s=>s.value.toLowerCase());
+      if(selectedVals.includes('black') && selectedVals.includes('medium')){
+        getJSON(BASE+'cart.js').then(cart=>{
+          const exists=cart.items.some(item=>item.id==JACKET_VARIANT_ID);
+          if(!exists){
+            return getJSON(BASE+'cart/add.js',{
+              method:'POST',
+              headers:{'Content-Type':'application/json','Accept':'application/json'},
+              body:JSON.stringify({id:JACKET_VARIANT_ID,quantity:1})
+            }).then(()=>{ STATUS.textContent+=' + Soft Winter Jacket added 🎉'; refreshCartCount(); });
+          }
+        });
+      }
+    });
   });
 
   function refreshCartCount(){
-    fetch(BASE+'cart.js')
-      .then(r=>r.json())
-      .then(cart=>{
-        const countEls=document.querySelectorAll('[data-cart-count]');
-        countEls.forEach(el=>el.textContent=cart.item_count);
-      });
+    fetch(BASE+'cart.js').then(r=>r.json()).then(cart=>{
+      document.querySelectorAll('[data-cart-count]').forEach(el=>el.textContent=cart.item_count);
+    });
   }
 })();
 </script>
