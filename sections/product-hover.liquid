@@ -1,0 +1,191 @@
+{% comment %}
+Product Grid (6) with Hover Overlay + Quick View
+- Choose up to 6 products manually
+- Hover: show product title, price, desc, and "Quick View" button
+- Responsive: 2 cols mobile, 3 cols desktop
+{% endcomment %}
+
+<section id="section-{{ section.id }}" class="custom-grid">
+  <div class="grid">
+    {% for block in section.blocks %}
+      {% if block.settings.product != blank %}
+        {% assign prod = all_products[block.settings.product] %}
+        <div class="card" {{ block.shopify_attributes }}>
+          
+          <!-- Product Image -->
+          <a href="{{ prod.url }}" class="card-media">
+            {% if prod.featured_image %}
+              <img 
+                src="{{ prod.featured_image | img_url: '600x' }}" 
+                alt="{{ prod.title }}" 
+                loading="lazy" 
+              />
+            {% endif %}
+          </a>
+
+          <!-- Hover Overlay -->
+          <div class="hover-overlay">
+            <div class="hover-info">
+              <h3 class="card-title">{{ prod.title }}</h3>
+              <div class="card-price">
+                {% if prod.price_varies %}
+                  From {{ prod.price_min | money }}
+                {% else %}
+                  {{ prod.price | money }}
+                {% endif %}
+              </div>
+              {% if prod.description != blank %}
+                <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+              {% endif %}
+              <button class="quick-btn" data-title="{{ prod.title }}" data-price="{{ prod.price | money }}" data-img="{{ prod.featured_image | img_url: '600x' }}" data-desc="{{ prod.description | strip_html | escape }}">
+                Quick View
+              </button>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="placeholder">Select a product</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Quick View Modal -->
+  <dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
+    <form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
+    <div class="pv-content">
+      <div class="pv-media"></div>
+      <div class="pv-info">
+        <h3 class="pv-title"></h3>
+        <div class="pv-price"></div>
+        <div class="pv-desc"></div>
+      </div>
+    </div>
+  </dialog>
+</section>
+
+<style>
+/* Grid */
+.custom-grid .grid { 
+  display: grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 16px; 
+}
+@media (min-width: 768px){
+  .custom-grid .grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+}
+
+/* Card */
+.card { 
+  border: 1px solid rgba(0,0,0,.08); 
+  border-radius: 12px; 
+  overflow: hidden; 
+  position: relative; 
+  transition: transform .25s ease; 
+}
+.card:hover { transform: translateY(-4px); }
+
+/* Image */
+.card-media img { 
+  width: 100%; 
+  height: auto; 
+  transition: transform .3s ease; 
+}
+.card:hover img { transform: scale(1.05); }
+
+/* Overlay */
+.hover-overlay { 
+  position: absolute; 
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.6); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  opacity: 0; 
+  transition: opacity .3s ease; 
+  color: #fff;
+  padding: 24px;
+  text-align: center;
+  z-index: 2;
+}
+.card:hover .hover-overlay { opacity: 1; }
+
+.hover-info { max-width: 90%; }
+.card-title { font-size: 18px; margin: 0 0 8px; }
+.card-price { font-weight: 700; margin-bottom: 8px; }
+.card-desc { font-size: 14px; opacity: .9; margin-bottom: 12px; }
+
+/* Quick View Button */
+.quick-btn {
+  background: #fff;
+  color: #000;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .3s ease;
+}
+.quick-btn:hover { background: #f2f2f2; }
+
+/* Placeholder */
+.placeholder { 
+  border: 1px dashed rgba(0,0,0,.2); 
+  border-radius: 12px; 
+  padding: 40px; 
+  text-align:center; 
+  color: #666; 
+}
+
+/* Modal */
+.pv-modal { width: min(600px, 92vw); border: none; border-radius: 16px; padding: 0; }
+.pv-modal::backdrop { background: rgba(0,0,0,.45); }
+.pv-content { display: grid; gap: 16px; padding: 20px; }
+.pv-close { position: absolute; top: 10px; right: 10px; border: none; background: #fff; border-radius: 999px; width: 32px; height: 32px; font-size: 20px; cursor: pointer; }
+.pv-media img { width: 100%; height: auto; border-radius: 12px; }
+.pv-title { margin: 0 0 8px; font-size: 20px; }
+.pv-price { font-weight: 700; margin-bottom: 8px; }
+.pv-desc { opacity: .9; font-size: 14px; margin-bottom: 12px; }
+</style>
+
+<script>
+(function(){
+  const modal = document.querySelector('#pv-{{ section.id }}-modal');
+  const mediaEl = modal.querySelector('.pv-media');
+  const titleEl = modal.querySelector('.pv-title');
+  const priceEl = modal.querySelector('.pv-price');
+  const descEl = modal.querySelector('.pv-desc');
+
+  document.querySelectorAll('#section-{{ section.id }} .quick-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      titleEl.textContent = btn.dataset.title;
+      priceEl.textContent = btn.dataset.price;
+      descEl.textContent = btn.dataset.desc;
+      mediaEl.innerHTML = '<img src="' + btn.dataset.img + '" alt="' + btn.dataset.title + '" />';
+      modal.showModal();
+    });
+  });
+
+  modal.querySelector('.pv-close').addEventListener('click', function(){
+    modal.close();
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Product Grid QuickView",
+  "settings": [],
+  "blocks": [
+    { "type": "product_1", "name": "Product 1", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product_2", "name": "Product 2", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product_3", "name": "Product 3", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product_4", "name": "Product 4", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product_5", "name": "Product 5", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product_6", "name": "Product 6", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    { "name": "Product Grid QuickView", "category": "Custom" }
+  ]
+}
+{% endschema %}
