@@ -1,9 +1,9 @@
 {% comment %}
-Product Grid (6) with Hover + Quick View
+Product Grid with Hover + Quick View (Smooth Modal)
 - Hover overlay shows product info + quick view button
-- Quick view modal with variants, description, and add-to-cart
-- Special rule: If a product is added with options "Black" + "Medium",
-  also auto-add Soft Winter Jacket (variant ID: 9843130663219)
+- Modal (custom div, not <dialog>) slides in smoothly
+- Add to cart works via AJAX
+- Special rule: If product with Black + Medium is added → also add Soft Winter Jacket (variant 9843130663219), but only once
 {% endcomment %}
 
 <section id="section-{{ section.id }}" class="custom-grid">
@@ -12,8 +12,6 @@ Product Grid (6) with Hover + Quick View
       {% if block.settings.product != blank %}
         {% assign prod = all_products[block.settings.product] %}
         <div class="card" {{ block.shopify_attributes }}>
-          
-          <!-- Product Image -->
           <a href="{{ prod.url }}" class="card-media">
             {% if prod.featured_image %}
               <img 
@@ -23,8 +21,6 @@ Product Grid (6) with Hover + Quick View
               />
             {% endif %}
           </a>
-
-          <!-- Hover Overlay -->
           <div class="hover-overlay">
             <div class="hover-info">
               <h3 class="card-title">{{ prod.title }}</h3>
@@ -35,9 +31,6 @@ Product Grid (6) with Hover + Quick View
                   {{ prod.price | money }}
                 {% endif %}
               </div>
-              {% if prod.description != blank %}
-                <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
-              {% endif %}
               <button 
                 class="quick-btn" 
                 data-product='{{ prod | json | escape }}'>
@@ -51,28 +44,29 @@ Product Grid (6) with Hover + Quick View
       {% endif %}
     {% endfor %}
   </div>
+</section>
 
-  <!-- Quick View Modal -->
-  <dialog class="pv-modal" id="pv-{{ section.id }}-modal" aria-label="Quick view">
-    <form method="dialog"><button class="pv-close" aria-label="Close">×</button></form>
-    <div class="pv-content">
-      <div class="pv-media"></div>
-      <div class="pv-info">
-        <h3 class="pv-title"></h3>
-        <div class="pv-price"></div>
-        <div class="pv-desc"></div>
+<!-- Quick View Modal -->
+<div class="quickview-backdrop">
+  <div class="quickview-card">
+    <button class="qv-close">×</button>
+    <div class="qv-content">
+      <div class="qv-media"></div>
+      <div class="qv-info">
+        <h3 class="qv-title"></h3>
+        <div class="qv-price"></div>
+        <div class="qv-desc"></div>
 
-        <!-- Dynamic Variants -->
-        <form class="pv-form">
-          <div class="pv-options"></div>
-          <input type="hidden" name="id" class="pv-variant-id" />
-          <button type="submit" class="pv-add">Add to cart</button>
+        <form class="qv-form">
+          <div class="qv-options"></div>
+          <input type="hidden" name="id" class="qv-variant-id" />
+          <button type="submit" class="qv-add">Add to cart</button>
         </form>
-        <div class="pv-status" role="status" aria-live="polite"></div>
+        <div class="qv-status" role="status" aria-live="polite"></div>
       </div>
     </div>
-  </dialog>
-</section>
+  </div>
+</div>
 
 <style>
 /* Grid */
@@ -82,61 +76,50 @@ Product Grid (6) with Hover + Quick View
 /* Card */
 .card { border: 1px solid rgba(0,0,0,.08); border-radius: 12px; overflow: hidden; position: relative; transition: transform .25s ease; }
 .card:hover { transform: translateY(-4px); }
-
-/* Image */
 .card-media img { width: 100%; height: auto; transition: transform .3s ease; }
 .card:hover img { transform: scale(1.05); }
 
 /* Overlay */
-.hover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .3s ease; color: #fff; padding: 24px; text-align: center; z-index: 2; }
+.hover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .3s ease; color: #fff; text-align: center; }
 .card:hover .hover-overlay { opacity: 1; }
+.quick-btn { background: #fff; color: #000; padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-.hover-info { max-width: 90%; }
-.card-title { font-size: 18px; margin: 0 0 8px; }
-.card-price { font-weight: 700; margin-bottom: 8px; }
-.card-desc { font-size: 14px; opacity: .9; margin-bottom: 12px; }
+/* Quick View Modal */
+.quickview-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.quickview-card { background: #fff; border-radius: 12px; max-width: 600px; width: 90%; padding: 20px; position: relative; transform: translateY(30px); opacity: 0; transition: all .3s ease; }
+.quickview-backdrop.active { display: flex; }
+.quickview-backdrop.active .quickview-card { transform: translateY(0); opacity: 1; }
 
-/* Quick View Button */
-.quick-btn { background: #fff; color: #000; padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background .3s ease; }
-.quick-btn:hover { background: #f2f2f2; }
-
-/* Placeholder */
-.placeholder { border: 1px dashed rgba(0,0,0,.2); border-radius: 12px; padding: 40px; text-align:center; color: #666; }
-
-/* Modal */
-.pv-modal { width: min(600px, 92vw); border: none; border-radius: 16px; padding: 0; }
-.pv-modal::backdrop { background: rgba(0,0,0,.45); }
-.pv-content { display: grid; gap: 16px; padding: 20px; }
-.pv-close { position: absolute; top: 10px; right: 10px; border: none; background: #fff; border-radius: 999px; width: 32px; height: 32px; font-size: 20px; cursor: pointer; }
-.pv-media img { width: 100%; height: auto; border-radius: 12px; }
-.pv-title { margin: 0 0 8px; font-size: 20px; }
-.pv-price { font-weight: 700; margin-bottom: 8px; }
-.pv-desc { opacity: .9; font-size: 14px; margin-bottom: 12px; }
-.pv-options { margin-bottom: 12px; display: grid; gap: 10px; }
-.pv-options select { padding: 6px; border-radius: 6px; }
-.pv-add { padding: 10px 16px; border-radius: 8px; border: 1px solid currentColor; cursor: pointer; }
-.pv-status { margin-top: 8px; font-size: 14px; }
+.qv-close { position: absolute; top: 10px; right: 10px; border: none; background: #eee; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; }
+.qv-media img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
+.qv-title { margin: 0 0 8px; font-size: 20px; }
+.qv-price { font-weight: 700; margin-bottom: 8px; }
+.qv-desc { font-size: 14px; margin-bottom: 12px; }
+.qv-options select { width: 100%; padding: 6px; margin-bottom: 10px; border-radius: 6px; }
+.qv-add { background: #000; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.qv-status { margin-top: 8px; font-size: 14px; color: green; }
 </style>
 
 <script>
 (function(){
-  const modal = document.querySelector('#pv-{{ section.id }}-modal');
-  const mediaEl = modal.querySelector('.pv-media');
-  const titleEl = modal.querySelector('.pv-title');
-  const priceEl = modal.querySelector('.pv-price');
-  const descEl = modal.querySelector('.pv-desc');
-  const optionsEl = modal.querySelector('.pv-options');
-  const variantInput = modal.querySelector('.pv-variant-id');
-  const statusEl = modal.querySelector('.pv-status');
+  const modal = document.querySelector('.quickview-backdrop');
+  const card = modal.querySelector('.quickview-card');
+  const mediaEl = modal.querySelector('.qv-media');
+  const titleEl = modal.querySelector('.qv-title');
+  const priceEl = modal.querySelector('.qv-price');
+  const descEl = modal.querySelector('.qv-desc');
+  const optionsEl = modal.querySelector('.qv-options');
+  const variantInput = modal.querySelector('.qv-variant-id');
+  const statusEl = modal.querySelector('.qv-status');
+  const closeBtn = modal.querySelector('.qv-close');
 
-  // Open modal
-  document.querySelectorAll('#section-{{ section.id }} .quick-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
+  // Open Quick View
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', function(){
       const productData = JSON.parse(btn.dataset.product);
-
       titleEl.textContent = productData.title;
       priceEl.textContent = Shopify.formatMoney(productData.price, "{{ shop.money_format }}");
-      descEl.textContent = productData.description;
+      descEl.textContent = productData.description || '';
       mediaEl.innerHTML = '<img src="' + productData.featured_image + '" alt="' + productData.title + '" />';
 
       // Build variant selectors
@@ -155,10 +138,9 @@ Product Grid (6) with Hover + Quick View
         });
       }
 
-      // Default variant
       variantInput.value = productData.variants[0].id;
 
-      // Update variant ID on selection
+      // Variant change
       optionsEl.querySelectorAll('select').forEach(sel => {
         sel.addEventListener('change', () => {
           const selectedOptions = Array.from(optionsEl.querySelectorAll('select')).map(s => s.value);
@@ -170,12 +152,16 @@ Product Grid (6) with Hover + Quick View
         });
       });
 
-      modal.showModal();
+      modal.classList.add('active');
     });
   });
 
+  // Close modal
+  closeBtn.addEventListener('click', ()=> modal.classList.remove('active'));
+  modal.addEventListener('click', e => { if(e.target === modal) modal.classList.remove('active'); });
+
   // Add to cart
-  modal.querySelector('.pv-form').addEventListener('submit', function(e){
+  modal.querySelector('.qv-form').addEventListener('submit', function(e){
     e.preventDefault();
     const variantId = variantInput.value;
 
@@ -188,38 +174,43 @@ Product Grid (6) with Hover + Quick View
     .then(data => {
       statusEl.textContent = data.title + " added to cart ✅";
 
-      // SPECIAL RULE: Add Soft Winter Jacket (Black + Medium)
+      // Special Rule: Black + Medium → Add Jacket (only if not already in cart)
       if(data.options.includes("Black") && data.options.includes("Medium")) {
-        fetch('/cart/add.js', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: 9843130663219, quantity: 1 })
+        fetch('/cart.js')
+        .then(res => res.json())
+        .then(cart => {
+          const alreadyInCart = cart.items.some(item => item.id == 9843130663219);
+          if(!alreadyInCart) {
+            fetch('/cart/add.js', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: 9843130663219, quantity: 1 })
+            }).then(()=> {
+              statusEl.textContent += " + Soft Winter Jacket added automatically 🎉";
+            });
+          }
         });
       }
     });
-  });
-
-  modal.querySelector('.pv-close').addEventListener('click', function(){
-    modal.close();
   });
 })();
 </script>
 
 {% schema %}
 {
-  "name": "Product Grid QuickView",
+  "name": "Product Grid QV",
   "settings": [],
   "blocks": [
-    { "type": "product_1", "name": "Product 1", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
-    { "type": "product_2", "name": "Product 2", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
-    { "type": "product_3", "name": "Product 3", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
-    { "type": "product_4", "name": "Product 4", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
-    { "type": "product_5", "name": "Product 5", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
-    { "type": "product_6", "name": "Product 6", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] }
+    { "type": "product1", "name": "Product 1", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product2", "name": "Product 2", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product3", "name": "Product 3", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product4", "name": "Product 4", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product5", "name": "Product 5", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] },
+    { "type": "product6", "name": "Product 6", "settings": [{ "type": "product", "id": "product", "label": "Select product" }] }
   ],
   "max_blocks": 6,
   "presets": [
-    { "name": "Product Grid QuickView", "category": "Custom" }
+    { "name": "Product Grid QV", "category": "Custom" }
   ]
 }
 {% endschema %}
