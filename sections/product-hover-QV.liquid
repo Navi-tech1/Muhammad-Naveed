@@ -39,7 +39,7 @@
         <form class="qv-form">
           <div class="qv-options"></div>
           <input type="hidden" name="id" class="qv-variant-id" />
-          <button type="submit" class="qv-add">ADD TO CART →</button>
+          <button type="submit" class="qv-add">ADD TO CART</button>
         </form>
         <div class="qv-status" role="status" aria-live="polite"></div>
       </div>
@@ -59,15 +59,16 @@
 .card-title,.card-price{color:#fff;}
 .quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
 
+/* Modal */
 .quickview-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s ease; }
 .quickview-backdrop.active { opacity:1; pointer-events:auto; }
-.quickview-card { background:#fff; border-radius:12px; max-width:800px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
+.quickview-card { background:#fff; border-radius:12px; max-width:900px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
 .quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
-.qv-close { position:absolute; top:12px; right:12px; border:none; background:#fff; border-radius:50%; width:32px; height:32px; cursor:pointer; }
+.qv-close { position:absolute; top:12px; right:12px; border:none; background:#eee; border-radius:50%; width:32px; height:32px; cursor:pointer; }
 .qv-content { display:grid; gap:20px; }
 @media(min-width:768px){ .qv-content{grid-template-columns:1fr 1fr; gap:24px;} }
 .qv-media img{width:100%; border-radius:8px;}
-.qv-title{font-size:20px; margin:0 0 6px;}
+.qv-title{font-size:22px; margin:0 0 6px;}
 .qv-price{font-weight:700; margin-bottom:10px;}
 .qv-desc{font-size:14px; margin-bottom:14px; opacity:.9;}
 .qv-options label{font-size:12px; margin:8px 0 4px; display:block;}
@@ -89,7 +90,7 @@
   const FORM = ROOT.querySelector('.qv-form');
   const STATUS = ROOT.querySelector('.qv-status');
   const CLOSE = ROOT.querySelector('.qv-close');
-  const JACKET_VARIANT_ID = 9843130663219;
+  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket
 
   function formatMoney(cents){ return (cents/100).toLocaleString(undefined,{style:"currency",currency:"{{ shop.currency }}"}) }
   function getJSON(url,opts){ return fetch(url,opts).then(r=>r.json()); }
@@ -102,7 +103,7 @@
         MEDIA.innerHTML=`<img src="${prod.featured_image}" alt="${prod.title}">`;
         TITLE.textContent=prod.title;
         PRICE.textContent=formatMoney(prod.price);
-        DESC.textContent=prod.description.replace(/<\/?[^>]+(>|$)/g,""); // strip HTML
+        DESC.textContent=prod.description.replace(/<\/?[^>]+(>|$)/g,"");
 
         buildOptions(prod);
         STATUS.textContent='';
@@ -116,10 +117,10 @@
     OPTS.innerHTML='';
     product.options.forEach((opt,optIndex)=>{
       const label=document.createElement('label');
-      label.textContent=opt;
+      label.textContent="Choose "+opt;
       const select=document.createElement('select');
       select.dataset.index=optIndex+1;
-      select.innerHTML=`<option value="">Choose ${opt}</option>`;
+      select.innerHTML=`<option value="">Select ${opt}</option>`;
       const values=[...new Set(product.variants.map(v=>v['option'+(optIndex+1)]))];
       values.forEach(v=>select.append(new Option(v,v)));
       select.onchange=()=>updateVariant(product);
@@ -140,6 +141,7 @@
     e.preventDefault();
     const variantId=VAR_INPUT.value;
     if(!variantId){ STATUS.textContent="Please select all options"; return; }
+
     getJSON(BASE+'cart/add.js',{
       method:'POST',
       headers:{'Content-Type':'application/json','Accept':'application/json'},
@@ -148,10 +150,12 @@
       STATUS.textContent=added.product_title+' added ✅';
       refreshCartCount();
 
-      // Only add Soft Winter Jacket if Black + Medium selected
+      // check exact match for Black + Medium
       const selects=OPTS.querySelectorAll('select');
-      let selectedVals=[...selects].map(s=>s.value.toLowerCase());
-      if(selectedVals.includes('black') && selectedVals.includes('medium')){
+      const selections={};
+      selects.forEach((s,i)=>{ selections["option"+(i+1)]=s.value.toLowerCase(); });
+
+      if(selections.option1==="black" && selections.option2==="medium"){
         getJSON(BASE+'cart.js').then(cart=>{
           const exists=cart.items.some(item=>item.id==JACKET_VARIANT_ID);
           if(!exists){
@@ -163,6 +167,9 @@
           }
         });
       }
+
+      // Close modal after add
+      setTimeout(()=>{ ROOT.classList.remove('active'); setTimeout(()=>ROOT.hidden=true,200); },1000);
     });
   });
 
@@ -176,7 +183,7 @@
 
 {% schema %}
 {
-  "name": "Prod Grid QV",
+  "name": "ProdGridQV",
   "settings": [],
   "blocks": [
     { "type": "p1", "name": "Product 1", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
@@ -187,6 +194,6 @@
     { "type": "p6", "name": "Product 6", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] }
   ],
   "max_blocks": 6,
-  "presets": [ { "name": "Prod Grid QV", "category": "Custom" } ]
+  "presets": [ { "name": "ProdGridQV", "category": "Custom" } ]
 }
 {% endschema %}
