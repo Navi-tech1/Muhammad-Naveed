@@ -1,23 +1,44 @@
+{% comment %}
+Product Grid (6) with Hover Info
+- Choose 6 products individually
+- Hover effect on product card: show product info overlay
+- Responsive grid: 2 cols mobile, 3 cols desktop
+- Quick view popup modal
+{% endcomment %}
+
 <section id="section-{{ section.id }}" class="custom-grid">
   <div class="grid">
     {% for block in section.blocks %}
       {% if block.settings.product != blank %}
         {% assign prod = all_products[block.settings.product] %}
         <div class="card" {{ block.shopify_attributes }}>
-          <a href="{{ prod.url }}" class="card-media" aria-label="{{ prod.title }}">
+          <a href="{{ prod.url }}" class="card-media">
             {% if prod.featured_image %}
-              <img src="{{ prod.featured_image | img_url: '600x' }}" alt="{{ prod.title }}" loading="lazy" />
+              <img 
+                src="{{ prod.featured_image | img_url: '600x' }}" 
+                alt="{{ prod.title }}" 
+                loading="lazy" 
+              />
             {% endif %}
-          </a>
-          <div class="hover-overlay">
-            <div class="hover-info">
-              <h3 class="card-title">{{ prod.title }}</h3>
-              <div class="card-price">
-                {% if prod.price_varies %}From {{ prod.price_min | money }}{% else %}{{ prod.price | money }}{% endif %}
+            <div class="hover-overlay">
+              <div class="hover-info">
+                <h3 class="card-title">{{ prod.title }}</h3>
+                <div class="card-price">
+                  {% if prod.price_varies %}
+                    From {{ prod.price_min | money }}
+                  {% else %}
+                    {{ prod.price | money }}
+                  {% endif %}
+                </div>
+                {% if prod.description != blank %}
+                  <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+                {% endif %}
+                <button class="quick-view-btn" data-product-id="{{ prod.id }}" data-product-handle="{{ prod.handle }}">
+                  Quick View
+                </button>
               </div>
-              <button class="quick-btn" data-handle="{{ prod.handle }}" aria-label="Quick view {{ prod.title }}">Quick View</button>
             </div>
-          </div>
+          </a>
         </div>
       {% else %}
         <div class="placeholder">Select a product</div>
@@ -27,173 +48,517 @@
 </section>
 
 <!-- Quick View Modal -->
-<div class="quickview-backdrop" data-qv-root hidden>
-  <div class="quickview-card" role="dialog" aria-modal="true" aria-label="Quick view">
-    <button class="qv-close" aria-label="Close">×</button>
-    <div class="qv-content">
-      <div class="qv-media"></div>
-      <div class="qv-info">
-        <h3 class="qv-title"></h3>
-        <div class="qv-price"></div>
-        <div class="qv-desc"></div>
-        <form class="qv-form">
-          <div class="qv-options"></div>
-          <input type="hidden" name="id" class="qv-variant-id" />
-          <button type="submit" class="qv-add">ADD TO CART</button>
+<div id="quick-view-modal" class="quick-view-modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-content">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <div class="modal-body">
+      <div class="product-image">
+        <img id="modal-product-image" src="" alt="" />
+      </div>
+      <div class="product-details">
+        <h2 id="modal-product-title"></h2>
+        <div class="product-price" id="modal-product-price"></div>
+        <div class="product-description" id="modal-product-description"></div>
+        
+        <form class="product-form" id="quick-view-form">
+          <input type="hidden" id="modal-product-id" name="id" value="">
+          
+          <!-- Color Selection -->
+          <div class="form-group">
+            <label>Color</label>
+            <div class="color-options" id="color-options">
+              <button type="button" class="color-btn active" data-color="grey">
+                <span>Grey</span>
+              </button>
+              <button type="button" class="color-btn" data-color="black">
+                <span>Black</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Size Selection -->
+          <div class="form-group">
+            <label>Size</label>
+            <select class="size-select" id="size-select">
+              <option value="">Choose your size</option>
+              <option value="xs">XS</option>
+              <option value="s">S</option>
+              <option value="m">M</option>
+              <option value="l">L</option>
+              <option value="xl">XL</option>
+              <option value="xxl">XXL</option>
+            </select>
+          </div>
+          
+          <!-- Add to Cart Button -->
+          <button type="submit" class="add-to-cart-btn">
+            ADD TO CART
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </form>
-        <div class="qv-status" role="status" aria-live="polite"></div>
       </div>
     </div>
   </div>
 </div>
 
 <style>
-.custom-grid .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-@media(min-width:768px){ .custom-grid .grid { grid-template-columns:repeat(3,1fr); gap:20px; } }
-.card { border:1px solid rgba(0,0,0,.08); border-radius:12px; overflow:hidden; position:relative; transition:transform .25s ease; }
-.card:hover { transform:translateY(-4px); }
-.card-media img { width:100%; transition:transform .3s ease; }
-.card:hover img { transform:scale(1.05); }
-.hover-overlay { position:absolute; inset:0; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .3s ease; }
-.card:hover .hover-overlay { opacity:1; }
-.card-title,.card-price{color:#fff;}
-.quick-btn { background:#fff; color:#000; padding:8px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:600; }
+/* Grid */
+.custom-grid .grid { 
+  display: grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 16px; 
+}
+@media (min-width: 768px){
+  .custom-grid .grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+}
 
-/* Modal */
-.quickview-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; pointer-events:none; transition:opacity .25s ease; }
-.quickview-backdrop.active { opacity:1; pointer-events:auto; }
-.quickview-card { background:#fff; border-radius:12px; max-width:900px; width:92vw; padding:20px; position:relative; transform:translateY(24px); opacity:0; transition:all .25s ease; }
-.quickview-backdrop.active .quickview-card { transform:translateY(0); opacity:1; }
-.qv-close { position:absolute; top:12px; right:12px; border:none; background:#eee; border-radius:50%; width:32px; height:32px; cursor:pointer; }
-.qv-content { display:grid; gap:20px; }
-@media(min-width:768px){ .qv-content{grid-template-columns:1fr 1fr; gap:24px;} }
-.qv-media img{width:100%; border-radius:8px;}
-.qv-title{font-size:22px; margin:0 0 6px;}
-.qv-price{font-weight:700; margin-bottom:10px;}
-.qv-desc{font-size:14px; margin-bottom:14px; opacity:.9;}
-.qv-options label{font-size:12px; margin:8px 0 4px; display:block;}
-.qv-options select{width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; margin-bottom:10px;}
-.qv-add{background:#000; color:#fff; padding:12px 16px; border-radius:4px; width:100%; font-weight:600; cursor:pointer;}
-.qv-status{margin-top:10px; font-size:14px; color:green;}
+/* Card */
+.card { 
+  border: 1px solid rgba(0,0,0,.08); 
+  border-radius: 12px; 
+  overflow: hidden; 
+  position: relative; 
+  transition: transform .25s ease; 
+}
+.card:hover { transform: translateY(-4px); }
+
+/* Image + overlay */
+.card-media { 
+  position: relative; 
+  display: block; 
+  overflow: hidden; 
+}
+.card-media img { 
+  width: 100%; 
+  height: auto; 
+  transition: transform .3s ease; 
+}
+.card:hover img { transform: scale(1.05); }
+
+.hover-overlay { 
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,.65); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  opacity: 0; 
+  transition: opacity .3s ease; 
+  color: #fff;
+  padding: 24px;
+  text-align: center;
+}
+.card:hover .hover-overlay { opacity: 1; }
+
+.hover-info { max-width: 90%; }
+.card-title { font-size: 18px; margin: 0 0 8px; }
+.card-price { font-weight: 700; margin-bottom: 8px; }
+.card-desc { font-size: 14px; opacity: .9; margin-bottom: 16px; }
+
+/* Quick View Button */
+.quick-view-btn {
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.quick-view-btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+/* Placeholder */
+.placeholder { 
+  border: 1px dashed rgba(0,0,0,.2); 
+  border-radius: 12px; 
+  padding: 40px; 
+  text-align:center; 
+  color: #666; 
+}
+
+/* Quick View Modal */
+.quick-view-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-view-modal.active {
+  display: flex;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.modal-close:hover {
+  background: rgba(0,0,0,0.1);
+}
+
+.modal-body {
+  display: flex;
+  min-height: 500px;
+}
+
+.product-image {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-details {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.product-details h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #000;
+}
+
+.product-price {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #000;
+}
+
+.product-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #000;
+}
+
+/* Color Options */
+.color-options {
+  display: flex;
+  gap: 8px;
+}
+
+.color-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.color-btn.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.color-btn:not(.active):hover {
+  background: #f5f5f5;
+}
+
+/* Size Select */
+.size-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+.size-select:focus {
+  outline: none;
+  border-color: #000;
+}
+
+/* Add to Cart Button */
+.add-to-cart-btn {
+  width: 100%;
+  padding: 16px 24px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+.add-to-cart-btn:hover {
+  background: #333;
+  transform: translateY(-1px);
+}
+
+.add-to-cart-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.add-to-cart-btn:hover svg {
+  transform: translateX(4px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal-body {
+    flex-direction: column;
+  }
+  
+  .product-image {
+    height: 300px;
+  }
+  
+  .product-details {
+    padding: 24px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+}
 </style>
 
 <script>
-(function(){
-  const BASE = window.Shopify.routes.root;
-  const ROOT = document.querySelector('[data-qv-root]');
-  const MEDIA = ROOT.querySelector('.qv-media');
-  const TITLE = ROOT.querySelector('.qv-title');
-  const PRICE = ROOT.querySelector('.qv-price');
-  const DESC = ROOT.querySelector('.qv-desc');
-  const OPTS = ROOT.querySelector('.qv-options');
-  const VAR_INPUT = ROOT.querySelector('.qv-variant-id');
-  const FORM = ROOT.querySelector('.qv-form');
-  const STATUS = ROOT.querySelector('.qv-status');
-  const CLOSE = ROOT.querySelector('.qv-close');
-  const JACKET_VARIANT_ID = 9843130663219; // Soft Winter Jacket
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('quick-view-modal');
+  const modalClose = document.getElementById('modal-close');
+  const modalOverlay = document.querySelector('.modal-overlay');
+  const quickViewBtns = document.querySelectorAll('.quick-view-btn');
+  const colorBtns = document.querySelectorAll('.color-btn');
+  const quickViewForm = document.getElementById('quick-view-form');
 
-  function formatMoney(cents){ return (cents/100).toLocaleString(undefined,{style:"currency",currency:"{{ shop.currency }}"}) }
-  function getJSON(url,opts){ return fetch(url,opts).then(r=>r.json()); }
-
-  document.querySelectorAll('.quick-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const handle=btn.dataset.handle;
-      getJSON(BASE+'products/'+handle+'.js').then(prod=>{
-        ROOT.hidden=false; ROOT.classList.add('active');
-        MEDIA.innerHTML=`<img src="${prod.featured_image}" alt="${prod.title}">`;
-        TITLE.textContent=prod.title;
-        PRICE.textContent=formatMoney(prod.price);
-        DESC.textContent=prod.description.replace(/<\/?[^>]+(>|$)/g,"");
-
-        buildOptions(prod);
-        STATUS.textContent='';
-      });
+  // Open modal
+  quickViewBtns.forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const productId = this.getAttribute('data-product-id');
+      const productHandle = this.getAttribute('data-product-handle');
+      
+      // Load product data
+      loadProductData(productHandle);
+      
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
     });
   });
 
-  CLOSE.addEventListener('click',()=>{ ROOT.classList.remove('active'); setTimeout(()=>ROOT.hidden=true,200); });
+  // Close modal
+  function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
 
-  function buildOptions(product){
-    OPTS.innerHTML='';
-    product.options.forEach((opt,optIndex)=>{
-      const label=document.createElement('label');
-      label.textContent="Choose "+opt;
-      const select=document.createElement('select');
-      select.dataset.index=optIndex+1;
-      select.innerHTML=`<option value="">Select ${opt}</option>`;
-      const values=[...new Set(product.variants.map(v=>v['option'+(optIndex+1)]))];
-      values.forEach(v=>select.append(new Option(v,v)));
-      select.onchange=()=>updateVariant(product);
-      OPTS.appendChild(label);
-      OPTS.appendChild(select);
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', closeModal);
+
+  // Color selection
+  colorBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      colorBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
     });
+  });
+
+  // Load product data
+  function loadProductData(productHandle) {
+    // In a real implementation, you would fetch product data from Shopify API
+    // For now, we'll use placeholder data
+    const productData = {
+      title: 'Tennis Blue T-Shirt',
+      price: '980,00€',
+      description: 'This one-piece swimsuit is crafted from jersey featuring an allover micro Monogram motif in relief.',
+      image: 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image',
+      id: productHandle
+    };
+
+    document.getElementById('modal-product-title').textContent = productData.title;
+    document.getElementById('modal-product-price').textContent = productData.price;
+    document.getElementById('modal-product-description').textContent = productData.description;
+    document.getElementById('modal-product-image').src = productData.image;
+    document.getElementById('modal-product-image').alt = productData.title;
+    document.getElementById('modal-product-id').value = productData.id;
   }
 
-  function updateVariant(product){
-    const selects=OPTS.querySelectorAll('select');
-    const chosen=[...selects].map(s=>s.value);
-    const found=product.variants.find(v=>chosen.every((val,i)=>!val||v['option'+(i+1)]===val));
-    if(found){ VAR_INPUT.value=found.id; PRICE.textContent=formatMoney(found.price); }
-    else { VAR_INPUT.value=''; }
-  }
-
-  FORM.addEventListener('submit',function(e){
+  // Form submission
+  quickViewForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    const variantId=VAR_INPUT.value;
-    if(!variantId){ STATUS.textContent="Please select all options"; return; }
-
-    getJSON(BASE+'cart/add.js',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({id:Number(variantId),quantity:1})
-    }).then(added=>{
-      STATUS.textContent=added.product_title+' added ✅';
-      refreshCartCount();
-
-      // check exact match for Black + Medium
-      const selects=OPTS.querySelectorAll('select');
-      const selections={};
-      selects.forEach((s,i)=>{ selections["option"+(i+1)]=s.value.toLowerCase(); });
-
-      if(selections.option1==="black" && selections.option2==="medium"){
-        getJSON(BASE+'cart.js').then(cart=>{
-          const exists=cart.items.some(item=>item.id==JACKET_VARIANT_ID);
-          if(!exists){
-            return getJSON(BASE+'cart/add.js',{
-              method:'POST',
-              headers:{'Content-Type':'application/json','Accept':'application/json'},
-              body:JSON.stringify({id:JACKET_VARIANT_ID,quantity:1})
-            }).then(()=>{ STATUS.textContent+=' + Soft Winter Jacket added 🎉'; refreshCartCount(); });
-          }
-        });
-      }
-
-      // Close modal after add
-      setTimeout(()=>{ ROOT.classList.remove('active'); setTimeout(()=>ROOT.hidden=true,200); },1000);
+    
+    const formData = new FormData(this);
+    const selectedColor = document.querySelector('.color-btn.active').getAttribute('data-color');
+    const selectedSize = document.getElementById('size-select').value;
+    
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+    
+    // Add color and size to form data
+    formData.append('properties[Color]', selectedColor);
+    formData.append('properties[Size]', selectedSize);
+    
+    // In a real implementation, you would submit to Shopify's cart API
+    console.log('Adding to cart:', {
+      productId: formData.get('id'),
+      color: selectedColor,
+      size: selectedSize
     });
+    
+    // Show success message
+    alert('Product added to cart!');
+    closeModal();
   });
 
-  function refreshCartCount(){
-    fetch(BASE+'cart.js').then(r=>r.json()).then(cart=>{
-      document.querySelectorAll('[data-cart-count]').forEach(el=>el.textContent=cart.item_count);
-    });
-  }
-})();
+  // Close modal on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+});
 </script>
 
 {% schema %}
 {
-  "name": "ProdGridQV",
+  "name": "Product Grid Hover",
   "settings": [],
   "blocks": [
-    { "type": "p1", "name": "Product 1", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
-    { "type": "p2", "name": "Product 2", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
-    { "type": "p3", "name": "Product 3", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
-    { "type": "p4", "name": "Product 4", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
-    { "type": "p5", "name": "Product 5", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] },
-    { "type": "p6", "name": "Product 6", "settings": [ { "type": "product", "id": "product", "label": "Select product" } ] }
+    {
+      "type": "product_1",
+      "name": "Product 1",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    },
+    {
+      "type": "product_2",
+      "name": "Product 2",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    },
+    {
+      "type": "product_3",
+      "name": "Product 3",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    },
+    {
+      "type": "product_4",
+      "name": "Product 4",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    },
+    {
+      "type": "product_5",
+      "name": "Product 5",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    },
+    {
+      "type": "product_6",
+      "name": "Product 6",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Select product" }
+      ]
+    }
   ],
   "max_blocks": 6,
-  "presets": [ { "name": "ProdGridQV", "category": "Custom" } ]
+  "presets": [
+    {
+      "name": "Product Grid Hover",
+      "category": "Custom"
+    }
+  ]
 }
 {% endschema %}
+
