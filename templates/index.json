@@ -76,26 +76,40 @@
         "padding_bottom": 36
       }
     },
-    "product_hover_qv_DHMifL": {
+    "product_hover_qv_NwcYtU": {
       "type": "product-hover-QV",
       "blocks": {
-        "p1_A9DtDP": {
-          "type": "p1",
+        "product_1_9JCgjd": {
+          "type": "product_1",
           "settings": {
-            "product": "floral-white-top"
+            "product": "navy-sport-jacket"
+          }
+        },
+        "product_2_yVkfcF": {
+          "type": "product_2",
+          "settings": {
+            "product": "dark-denim-top"
+          }
+        },
+        "product_3_N4YnLx": {
+          "type": "product_3",
+          "settings": {
+            "product": "black-leather-bag"
           }
         }
       },
       "block_order": [
-        "p1_A9DtDP"
+        "product_1_9JCgjd",
+        "product_2_yVkfcF",
+        "product_3_N4YnLx"
       ],
-      "name": "Prod Grid QV",
+      "name": "Product Grid Hover",
       "settings": {}
     }
   },
   "order": [
     "image_banner",
     "featured_collection",
-    "product_hover_qv_DHMifL"
+    "product_hover_qv_NwcYtU"
   ]
 }
