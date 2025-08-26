@@ -642,7 +642,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Check if Soft Winter Jacket should be auto-added
   function shouldAutoAddWinterJacket(color, size) {
-    return color === 'black' && size === 'm';
+    const c = (color || '').toString().trim().toLowerCase();
+    const s = (size || '').toString().trim().toLowerCase();
+    return c === 'black' && (s === 'm' || s === 'medium');
   }
 
   // Form submission with proper cart functionality
@@ -668,19 +670,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemsToAdd = [
       {
         id: resolvedVariantId,
-        quantity: 1,
-        properties: {
-          'Color': selectedColor,
-          'Size': selectedSize
-        }
+        quantity: 1
+        // Do not pass Color/Size as properties to avoid duplication in cart; variant already encodes options
       }
     ];
     
     // Auto-add Soft Winter Jacket if Black + Medium is selected
     const needGift = shouldAutoAddWinterJacket(selectedColor, selectedSize);
-    const ensureGiftVariantId = GIFT_PRODUCT.variantId
-      ? Promise.resolve(GIFT_PRODUCT.variantId)
-      : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle);
+    const ensureGiftVariantId = (GIFT_PRODUCT && (GIFT_PRODUCT.variantId || GIFT_PRODUCT.handle))
+      ? (GIFT_PRODUCT.variantId ? Promise.resolve(GIFT_PRODUCT.variantId) : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle))
+      : Promise.resolve(null);
 
     const addItems = (giftVariantId) => {
       if (needGift && giftVariantId) {
