@@ -58,13 +58,14 @@ This prevents hardcoding and avoids 422 errors when the ID is missing.
     // Gift product metadata injected from Liquid (selected_or_first_available_variant is the safest default)
     window.GIFT_PRODUCT = {
       title: {{ gift_prod.title | json }},
-      variantId: {{ gift_prod.selected_or_first_available_variant.id | json }}
+      variantId: {{ gift_prod.selected_or_first_available_variant.id | json }},
+      handle: {{ gift_prod.handle | json }}
     };
   </script>
 {%- else -%}
   <script>
     // No gift product configured; JS will skip auto-add gracefully
-    window.GIFT_PRODUCT = { title: null, variantId: null };
+    window.GIFT_PRODUCT = { title: 'Soft Winter Jacket', variantId: null, handle: {{ section.settings.gift_product_handle | json }} };
   </script>
 {%- endif -%}
 
@@ -583,6 +584,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Fetch first available variant ID for a product handle
+  function fetchFirstAvailableVariantIdByHandle(handle) {
+    if (!handle) return Promise.resolve(null);
+    return fetch(`/products/${handle}.js`)
+      .then(r => r.json())
+      .then(p => {
+        const v = (p.variants || []).find(v => v.available) || (p.variants || [])[0];
+        return v ? v.id : null;
+      })
+      .catch(() => null);
+  }
+
   // Find variant ID that matches selected Color + Size from the loaded product JSON
   // This function tries multiple matching strategies to cope with different option naming and values (e.g., M vs Medium)
   function getVariantIdForSelection(product, selectedColor, selectedSize) {
@@ -664,16 +677,48 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     
     // Auto-add Soft Winter Jacket if Black + Medium is selected
-    if (shouldAutoAddWinterJacket(selectedColor, selectedSize) && GIFT_PRODUCT.variantId) {
-      itemsToAdd.push({
-        id: GIFT_PRODUCT.variantId,
-        quantity: 1,
-        properties: {
-          'Auto-added': 'Yes',
-          'Reason': 'Black + Medium variant selected'
-        }
-      });
-    }
+    const needGift = shouldAutoAddWinterJacket(selectedColor, selectedSize);
+    const ensureGiftVariantId = GIFT_PRODUCT.variantId
+      ? Promise.resolve(GIFT_PRODUCT.variantId)
+      : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle);
+
+    const addItems = (giftVariantId) => {
+      if (needGift && giftVariantId) {
+        itemsToAdd.push({
+          id: giftVariantId,
+          quantity: 1,
+          properties: {
+            'Auto-added': 'Yes',
+            'Reason': 'Black + Medium variant selected'
+          }
+        });
+      }
+
+      // Add items to cart
+      addToCart(itemsToAdd)
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(err => { throw err; });
+          }
+          return response.json();
+        })
+        .then(() => {
+          updateCartCount();
+          showSuccessMessage(needGift && giftVariantId);
+          closeModal();
+        })
+        .catch(error => {
+          console.error('Error adding to cart:', error);
+          const message = (error && error.description) ? error.description : 'Failed to add product to cart. Please try again.';
+          alert(message);
+        })
+        .finally(() => {
+          addToCartBtn.classList.remove('loading');
+          addToCartBtn.disabled = false;
+        });
+    };
+
+    ensureGiftVariantId.then(addItems);
     
     // Add items to cart
     addToCart(itemsToAdd)
@@ -816,6 +861,12 @@ document.addEventListener('DOMContentLoaded', function() {
       "id": "gift_product",
       "label": "Gift product (auto-add when Black + Medium)",
       "info": "Select 'Soft Winter Jacket' to auto-add when Black + Medium is chosen. Optional."
+    },
+    {
+      "type": "text",
+      "id": "gift_product_handle",
+      "label": "Gift product handle (fallback)",
+      "info": "If product above is not set, provide handle e.g. soft-winter-jacket"
     }
   ],
   "blocks": [
