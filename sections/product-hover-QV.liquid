@@ -4,6 +4,7 @@ Product Grid (6) with Hover Info
 - Hover effect on product card: show product info overlay
 - Responsive grid: 2 cols mobile, 3 cols desktop
 - Quick view popup modal
+- Auto-add Soft Winter Jacket when Black+Medium variants are selected
 {% endcomment %}
 
 <section id="section-{{ section.id }}" class="custom-grid">
@@ -15,7 +16,7 @@ Product Grid (6) with Hover Info
           <a href="{{ prod.url }}" class="card-media">
             {% if prod.featured_image %}
               <img 
-                src="{{ prod.featured_image | img_url: '600x' }}" 
+                src="{{ prod.featured_image | img_url: '400x' }}" 
                 alt="{{ prod.title }}" 
                 loading="lazy" 
               />
@@ -31,7 +32,7 @@ Product Grid (6) with Hover Info
                   {% endif %}
                 </div>
                 {% if prod.description != blank %}
-                  <div class="card-desc">{{ prod.description | strip_html | truncate: 100 }}</div>
+                  <div class="card-desc">{{ prod.description | strip_html | truncate: 80 }}</div>
                 {% endif %}
                 <button class="quick-view-btn" data-product-id="{{ prod.id }}" data-product-handle="{{ prod.handle }}">
                   Quick View
@@ -92,8 +93,9 @@ Product Grid (6) with Hover Info
           </div>
           
           <!-- Add to Cart Button -->
-          <button type="submit" class="add-to-cart-btn">
-            ADD TO CART
+          <button type="submit" class="add-to-cart-btn" id="add-to-cart-btn">
+            <span class="btn-text">ADD TO CART</span>
+            <span class="btn-loading" style="display: none;">Adding...</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -105,35 +107,47 @@ Product Grid (6) with Hover Info
 </div>
 
 <style>
-/* Grid */
+/* Grid - Reduced sizes for better aesthetics */
 .custom-grid .grid { 
   display: grid; 
   grid-template-columns: repeat(2, 1fr); 
-  gap: 16px; 
+  gap: 12px; 
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
 }
 @media (min-width: 768px){
-  .custom-grid .grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .custom-grid .grid { 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 16px; 
+  }
 }
 
-/* Card */
+/* Card - Reduced size and improved styling */
 .card { 
   border: 1px solid rgba(0,0,0,.08); 
-  border-radius: 12px; 
+  border-radius: 8px; 
   overflow: hidden; 
   position: relative; 
-  transition: transform .25s ease; 
+  transition: transform .25s ease, box-shadow .25s ease;
+  background: #fff;
 }
-.card:hover { transform: translateY(-4px); }
+.card:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
 
-/* Image + overlay */
+/* Image + overlay - Optimized for smaller cards */
 .card-media { 
   position: relative; 
   display: block; 
   overflow: hidden; 
+  aspect-ratio: 3/4;
 }
 .card-media img { 
   width: 100%; 
-  height: auto; 
+  height: 100%;
+  object-fit: cover;
   transition: transform .3s ease; 
 }
 .card:hover img { transform: scale(1.05); }
@@ -141,31 +155,31 @@ Product Grid (6) with Hover Info
 .hover-overlay { 
   position: absolute; 
   inset: 0; 
-  background: rgba(0,0,0,.65); 
+  background: rgba(0,0,0,.7); 
   display: flex; 
   align-items: center; 
   justify-content: center; 
   opacity: 0; 
   transition: opacity .3s ease; 
   color: #fff;
-  padding: 24px;
+  padding: 16px;
   text-align: center;
 }
 .card:hover .hover-overlay { opacity: 1; }
 
 .hover-info { max-width: 90%; }
-.card-title { font-size: 18px; margin: 0 0 8px; }
-.card-price { font-weight: 700; margin-bottom: 8px; }
-.card-desc { font-size: 14px; opacity: .9; margin-bottom: 16px; }
+.card-title { font-size: 16px; margin: 0 0 6px; font-weight: 600; }
+.card-price { font-weight: 700; margin-bottom: 6px; font-size: 14px; }
+.card-desc { font-size: 12px; opacity: .9; margin-bottom: 12px; line-height: 1.4; }
 
 /* Quick View Button */
 .quick-view-btn {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   color: #000;
   border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -178,10 +192,11 @@ Product Grid (6) with Hover Info
 /* Placeholder */
 .placeholder { 
   border: 1px dashed rgba(0,0,0,.2); 
-  border-radius: 12px; 
-  padding: 40px; 
+  border-radius: 8px; 
+  padding: 30px; 
   text-align:center; 
   color: #666; 
+  font-size: 14px;
 }
 
 /* Quick View Modal */
@@ -215,7 +230,7 @@ Product Grid (6) with Hover Info
   position: relative;
   background: #fff;
   border-radius: 12px;
-  max-width: 800px;
+  max-width: 700px;
   width: 90%;
   max-height: 90vh;
   overflow: hidden;
@@ -247,7 +262,7 @@ Product Grid (6) with Hover Info
 
 .modal-body {
   display: flex;
-  min-height: 500px;
+  min-height: 450px;
 }
 
 .product-image {
@@ -264,21 +279,21 @@ Product Grid (6) with Hover Info
 
 .product-details {
   flex: 1;
-  padding: 40px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .product-details h2 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   margin: 0 0 12px 0;
   color: #000;
 }
 
 .product-price {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   margin-bottom: 16px;
   color: #000;
@@ -288,12 +303,12 @@ Product Grid (6) with Hover Info
   font-size: 14px;
   line-height: 1.5;
   color: #666;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 /* Form Styles */
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-group label {
@@ -312,11 +327,11 @@ Product Grid (6) with Hover Info
 
 .color-btn {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid #ddd;
   background: #fff;
   color: #000;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -336,10 +351,10 @@ Product Grid (6) with Hover Info
 /* Size Select */
 .size-select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   background: #fff;
   color: #000;
   cursor: pointer;
@@ -353,12 +368,12 @@ Product Grid (6) with Hover Info
 /* Add to Cart Button */
 .add-to-cart-btn {
   width: 100%;
-  padding: 16px 24px;
+  padding: 14px 20px;
   background: #000;
   color: #fff;
   border: none;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -367,19 +382,39 @@ Product Grid (6) with Hover Info
   gap: 8px;
   transition: all 0.3s ease;
   margin-top: 16px;
+  position: relative;
 }
 
-.add-to-cart-btn:hover {
+.add-to-cart-btn:hover:not(:disabled) {
   background: #333;
   transform: translateY(-1px);
+}
+
+.add-to-cart-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .add-to-cart-btn svg {
   transition: transform 0.3s ease;
 }
 
-.add-to-cart-btn:hover svg {
+.add-to-cart-btn:hover:not(:disabled) svg {
   transform: translateX(4px);
+}
+
+/* Loading state */
+.btn-loading {
+  display: none;
+}
+
+.add-to-cart-btn.loading .btn-text {
+  display: none;
+}
+
+.add-to-cart-btn.loading .btn-loading {
+  display: inline;
 }
 
 /* Responsive Design */
@@ -389,30 +424,43 @@ Product Grid (6) with Hover Info
   }
   
   .product-image {
-    height: 300px;
+    height: 250px;
   }
   
   .product-details {
-    padding: 24px;
+    padding: 20px;
   }
   
   .modal-content {
     width: 95%;
     max-height: 95vh;
   }
+  
+  .custom-grid .grid {
+    gap: 10px;
+    padding: 0 12px;
+  }
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Modal elements
   const modal = document.getElementById('quick-view-modal');
   const modalClose = document.getElementById('modal-close');
   const modalOverlay = document.querySelector('.modal-overlay');
   const quickViewBtns = document.querySelectorAll('.quick-view-btn');
   const colorBtns = document.querySelectorAll('.color-btn');
   const quickViewForm = document.getElementById('quick-view-form');
+  const addToCartBtn = document.getElementById('add-to-cart-btn');
 
-  // Open modal
+  // Product data storage
+  let currentProductData = null;
+  
+  // Soft Winter Jacket product ID (you'll need to replace this with actual product ID)
+  const SOFT_WINTER_JACKET_ID = 'soft-winter-jacket-id'; // Replace with actual product ID
+
+  // Open modal functionality
   quickViewBtns.forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -429,16 +477,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Close modal
+  // Close modal functionality
   function closeModal() {
     modal.classList.remove('active');
     document.body.style.overflow = '';
+    // Reset form
+    quickViewForm.reset();
+    colorBtns[0].classList.add('active');
+    colorBtns[1].classList.remove('active');
+    addToCartBtn.classList.remove('loading');
   }
 
   modalClose.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', closeModal);
 
-  // Color selection
+  // Color selection functionality
   colorBtns.forEach(btn => {
     btn.addEventListener('click', function() {
       colorBtns.forEach(b => b.classList.remove('active'));
@@ -446,31 +499,78 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Load product data
+  // Load product data from Shopify API
   function loadProductData(productHandle) {
-    // In a real implementation, you would fetch product data from Shopify API
-    // For now, we'll use placeholder data
-    const productData = {
-      title: 'Tennis Blue T-Shirt',
-      price: '980,00€',
-      description: 'This one-piece swimsuit is crafted from jersey featuring an allover micro Monogram motif in relief.',
-      image: 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image',
-      id: productHandle
-    };
-
-    document.getElementById('modal-product-title').textContent = productData.title;
-    document.getElementById('modal-product-price').textContent = productData.price;
-    document.getElementById('modal-product-description').textContent = productData.description;
-    document.getElementById('modal-product-image').src = productData.image;
-    document.getElementById('modal-product-image').alt = productData.title;
-    document.getElementById('modal-product-id').value = productData.id;
+    // Show loading state
+    addToCartBtn.classList.add('loading');
+    
+    // Fetch product data from Shopify API
+    fetch(`/products/${productHandle}.js`)
+      .then(response => response.json())
+      .then(product => {
+        currentProductData = product;
+        
+        // Update modal content
+        document.getElementById('modal-product-title').textContent = product.title;
+        document.getElementById('modal-product-price').textContent = formatPrice(product.price);
+        document.getElementById('modal-product-description').textContent = product.description || 'No description available';
+        document.getElementById('modal-product-image').src = product.featured_image || 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image';
+        document.getElementById('modal-product-image').alt = product.title;
+        document.getElementById('modal-product-id').value = product.variants[0]?.id || product.id;
+        
+        // Remove loading state
+        addToCartBtn.classList.remove('loading');
+      })
+      .catch(error => {
+        console.error('Error loading product data:', error);
+        // Fallback to placeholder data
+        const productData = {
+          title: 'Product Title',
+          price: '0.00',
+          description: 'Product description not available.',
+          image: 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image',
+          id: productHandle
+        };
+        
+        document.getElementById('modal-product-title').textContent = productData.title;
+        document.getElementById('modal-product-price').textContent = productData.price;
+        document.getElementById('modal-product-description').textContent = productData.description;
+        document.getElementById('modal-product-image').src = productData.image;
+        document.getElementById('modal-product-image').alt = productData.title;
+        document.getElementById('modal-product-id').value = productData.id;
+        
+        addToCartBtn.classList.remove('loading');
+      });
   }
 
-  // Form submission
+  // Format price for display
+  function formatPrice(price) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(price / 100);
+  }
+
+  // Add to cart functionality using Shopify AJAX API
+  function addToCart(items) {
+    return fetch('/cart/add.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ items: items })
+    });
+  }
+
+  // Check if Soft Winter Jacket should be auto-added
+  function shouldAutoAddWinterJacket(color, size) {
+    return color === 'black' && size === 'm';
+  }
+
+  // Form submission with proper cart functionality
   quickViewForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const formData = new FormData(this);
     const selectedColor = document.querySelector('.color-btn.active').getAttribute('data-color');
     const selectedSize = document.getElementById('size-select').value;
     
@@ -479,21 +579,144 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    // Add color and size to form data
-    formData.append('properties[Color]', selectedColor);
-    formData.append('properties[Size]', selectedSize);
+    // Show loading state
+    addToCartBtn.classList.add('loading');
+    addToCartBtn.disabled = true;
     
-    // In a real implementation, you would submit to Shopify's cart API
-    console.log('Adding to cart:', {
-      productId: formData.get('id'),
-      color: selectedColor,
-      size: selectedSize
-    });
+    // Prepare items to add to cart
+    const itemsToAdd = [
+      {
+        id: document.getElementById('modal-product-id').value,
+        quantity: 1,
+        properties: {
+          'Color': selectedColor,
+          'Size': selectedSize
+        }
+      }
+    ];
     
-    // Show success message
-    alert('Product added to cart!');
-    closeModal();
+    // Auto-add Soft Winter Jacket if Black + Medium is selected
+    if (shouldAutoAddWinterJacket(selectedColor, selectedSize)) {
+      itemsToAdd.push({
+        id: SOFT_WINTER_JACKET_ID,
+        quantity: 1,
+        properties: {
+          'Auto-added': 'Yes',
+          'Reason': 'Black + Medium variant selected'
+        }
+      });
+    }
+    
+    // Add items to cart
+    addToCart(itemsToAdd)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to add to cart');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Success - update cart count and show confirmation
+        updateCartCount();
+        showSuccessMessage();
+        closeModal();
+      })
+      .catch(error => {
+        console.error('Error adding to cart:', error);
+        alert('Failed to add product to cart. Please try again.');
+      })
+      .finally(() => {
+        // Reset button state
+        addToCartBtn.classList.remove('loading');
+        addToCartBtn.disabled = false;
+      });
   });
+
+  // Update cart count in header (if cart count element exists)
+  function updateCartCount() {
+    const cartCountElements = document.querySelectorAll('.cart-count, .cart-count-bubble');
+    if (cartCountElements.length > 0) {
+      // Fetch current cart and update count
+      fetch('/cart.js')
+        .then(response => response.json())
+        .then(cart => {
+          cartCountElements.forEach(element => {
+            element.textContent = cart.item_count;
+            element.style.display = cart.item_count > 0 ? 'block' : 'none';
+          });
+        })
+        .catch(error => console.error('Error updating cart count:', error));
+    }
+  }
+
+  // Show success message
+  function showSuccessMessage() {
+    // Create and show a success notification
+    const notification = document.createElement('div');
+    notification.className = 'cart-notification';
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span>✓ Product added to cart successfully!</span>
+        <button class="notification-close">&times;</button>
+      </div>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 4px;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideIn 0.3s ease;
+    `;
+    
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.remove();
+      }
+    }, 3000);
+    
+    // Manual close
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+      notification.remove();
+    });
+  }
 
   // Close modal on escape key
   document.addEventListener('keydown', function(e) {
