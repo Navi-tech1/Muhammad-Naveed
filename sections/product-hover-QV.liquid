@@ -55,17 +55,24 @@ This prevents hardcoding and avoids 422 errors when the ID is missing.
 {%- if section.settings.gift_product != blank -%}
   {%- assign gift_prod = all_products[section.settings.gift_product] -%}
   <script>
-    // Gift product metadata injected from Liquid (selected_or_first_available_variant is the safest default)
-    window.GIFT_PRODUCT = {
-      title: {{ gift_prod.title | json }},
-      variantId: {{ gift_prod.selected_or_first_available_variant.id | json }},
-      handle: {{ gift_prod.handle | json }}
-    };
+    // Merge section-provided gift info without overwriting existing global values
+    window.GIFT_PRODUCT = (function (gp) {
+      gp = gp || {};
+      gp.title = gp.title || {{ gift_prod.title | json }};
+      gp.variantId = gp.variantId || {{ gift_prod.selected_or_first_available_variant.id | json }};
+      gp.handle = gp.handle || {{ gift_prod.handle | json }};
+      return gp;
+    })(window.GIFT_PRODUCT);
   </script>
 {%- else -%}
   <script>
-    // No gift product configured; JS will skip auto-add gracefully
-    window.GIFT_PRODUCT = { title: 'Soft Winter Jacket', variantId: null, handle: {{ section.settings.gift_product_handle | json }} };
+    // Fallback: only set missing fields; do NOT null-out an existing variantId
+    window.GIFT_PRODUCT = (function (gp) {
+      gp = gp || {};
+      gp.title = gp.title || 'Soft Winter Jacket';
+      gp.handle = gp.handle || {{ section.settings.gift_product_handle | json }};
+      return gp;
+    })(window.GIFT_PRODUCT);
   </script>
 {%- endif -%}
 
