@@ -48,6 +48,26 @@ Product Grid (6) with Hover Info
   </div>
 </section>
 
+{%- comment -%}
+Expose optional gift product variant id (Soft Winter Jacket) to JS if configured in section settings.
+This prevents hardcoding and avoids 422 errors when the ID is missing.
+{%- endcomment -%}
+{%- if section.settings.gift_product != blank -%}
+  {%- assign gift_prod = all_products[section.settings.gift_product] -%}
+  <script>
+    // Gift product metadata injected from Liquid (selected_or_first_available_variant is the safest default)
+    window.GIFT_PRODUCT = {
+      title: {{ gift_prod.title | json }},
+      variantId: {{ gift_prod.selected_or_first_available_variant.id | json }}
+    };
+  </script>
+{%- else -%}
+  <script>
+    // No gift product configured; JS will skip auto-add gracefully
+    window.GIFT_PRODUCT = { title: null, variantId: null };
+  </script>
+{%- endif -%}
+
 <!-- Quick View Modal -->
 <div id="quick-view-modal" class="quick-view-modal">
   <div class="modal-overlay"></div>
@@ -454,11 +474,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const quickViewForm = document.getElementById('quick-view-form');
   const addToCartBtn = document.getElementById('add-to-cart-btn');
 
-  // Product data storage
+  // Product data storage for currently previewed product (from /products/{handle}.js)
   let currentProductData = null;
-  
-  // Soft Winter Jacket product ID (you'll need to replace this with actual product ID)
-  const SOFT_WINTER_JACKET_ID = 'soft-winter-jacket-id'; // Replace with actual product ID
+
+  // Gift product info injected from Liquid (see tag above). Will be null if not configured.
+  const GIFT_PRODUCT = (typeof window !== 'undefined' && window.GIFT_PRODUCT) ? window.GIFT_PRODUCT : { title: null, variantId: null };
 
   // Open modal functionality
   quickViewBtns.forEach(btn => {
@@ -516,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-product-description').textContent = product.description || 'No description available';
         document.getElementById('modal-product-image').src = product.featured_image || 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image';
         document.getElementById('modal-product-image').alt = product.title;
+        // Default the hidden input to first available variant (actual variant will be resolved on submit)
         document.getElementById('modal-product-id').value = product.variants[0]?.id || product.id;
         
         // Remove loading state
@@ -562,6 +583,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Find variant ID that matches selected Color + Size from the loaded product JSON
+  // This function tries multiple matching strategies to cope with different option naming and values (e.g., M vs Medium)
+  function getVariantIdForSelection(product, selectedColor, selectedSize) {
+    if (!product || !Array.isArray(product.variants)) return null;
+
+    // Normalize helper
+    const norm = (v) => (v || '').toString().trim().toLowerCase();
+
+    // Try to match with exact and fallback fuzzy match
+    const colorWanted = norm(selectedColor);
+    const sizeWanted = norm(selectedSize);
+
+    // Some themes store sizes like "Medium"; map short letters to likely names to broaden match
+    const sizeAliases = {
+      'xs': ['xs', 'x-small', 'extra small'],
+      's': ['s', 'small'],
+      'm': ['m', 'medium'],
+      'l': ['l', 'large'],
+      'xl': ['xl', 'x-large', 'extra large'],
+      'xxl': ['xxl', '2xl', 'xx-large', 'extra extra large']
+    };
+    const sizeCandidates = sizeAliases[sizeWanted] || [sizeWanted];
+
+    // Iterate variants and try to match across up to 3 options
+    for (const variant of product.variants) {
+      const o1 = norm(variant.option1);
+      const o2 = norm(variant.option2);
+      const o3 = norm(variant.option3);
+
+      const options = [o1, o2, o3].filter(Boolean);
+
+      const hasColor = options.some(o => o === colorWanted || (colorWanted && o.startsWith(colorWanted)));
+      const hasSize = options.some(o => sizeCandidates.includes(o) || sizeCandidates.some(s => o.startsWith(s)));
+
+      if (hasColor && hasSize && variant.available) {
+        return variant.id;
+      }
+    }
+
+    // Fallback: return first available variant
+    const firstAvailable = product.variants.find(v => v.available);
+    return firstAvailable ? firstAvailable.id : (product.variants[0] ? product.variants[0].id : null);
+  }
+
   // Check if Soft Winter Jacket should be auto-added
   function shouldAutoAddWinterJacket(color, size) {
     return color === 'black' && size === 'm';
@@ -583,10 +648,13 @@ document.addEventListener('DOMContentLoaded', function() {
     addToCartBtn.classList.add('loading');
     addToCartBtn.disabled = true;
     
+    // Resolve the correct variant ID for selected options to avoid adding wrong/invalid variant
+    const resolvedVariantId = getVariantIdForSelection(currentProductData, selectedColor, selectedSize) || document.getElementById('modal-product-id').value;
+
     // Prepare items to add to cart
     const itemsToAdd = [
       {
-        id: document.getElementById('modal-product-id').value,
+        id: resolvedVariantId,
         quantity: 1,
         properties: {
           'Color': selectedColor,
@@ -596,9 +664,9 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     
     // Auto-add Soft Winter Jacket if Black + Medium is selected
-    if (shouldAutoAddWinterJacket(selectedColor, selectedSize)) {
+    if (shouldAutoAddWinterJacket(selectedColor, selectedSize) && GIFT_PRODUCT.variantId) {
       itemsToAdd.push({
-        id: SOFT_WINTER_JACKET_ID,
+        id: GIFT_PRODUCT.variantId,
         quantity: 1,
         properties: {
           'Auto-added': 'Yes',
@@ -611,19 +679,22 @@ document.addEventListener('DOMContentLoaded', function() {
     addToCart(itemsToAdd)
       .then(response => {
         if (!response.ok) {
-          throw new Error('Failed to add to cart');
+          return response.json().then(err => { throw err; });
         }
         return response.json();
       })
       .then(data => {
         // Success - update cart count and show confirmation
         updateCartCount();
-        showSuccessMessage();
+        const addedGift = shouldAutoAddWinterJacket(selectedColor, selectedSize) && GIFT_PRODUCT.variantId;
+        showSuccessMessage(addedGift);
         closeModal();
       })
       .catch(error => {
         console.error('Error adding to cart:', error);
-        alert('Failed to add product to cart. Please try again.');
+        // Provide clearer error message if available from Shopify
+        const message = (error && error.description) ? error.description : 'Failed to add product to cart. Please try again.';
+        alert(message);
       })
       .finally(() => {
         // Reset button state
@@ -634,15 +705,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Update cart count in header (if cart count element exists)
   function updateCartCount() {
-    const cartCountElements = document.querySelectorAll('.cart-count, .cart-count-bubble');
+    // Try multiple common selectors to be robust across themes
+    const cartCountElements = document.querySelectorAll('.cart-count, .cart-count-bubble, .cart-count-bubble .count, [data-cart-count]');
     if (cartCountElements.length > 0) {
       // Fetch current cart and update count
       fetch('/cart.js')
         .then(response => response.json())
         .then(cart => {
           cartCountElements.forEach(element => {
-            element.textContent = cart.item_count;
-            element.style.display = cart.item_count > 0 ? 'block' : 'none';
+            // If element has a nested .count (e.g., Dawn), update that
+            const innerCount = element.querySelector && element.querySelector('.count');
+            if (innerCount) {
+              innerCount.textContent = cart.item_count;
+              element.style.display = cart.item_count > 0 ? 'block' : 'none';
+            } else {
+              element.textContent = cart.item_count;
+              element.style.display = cart.item_count > 0 ? 'block' : 'none';
+            }
           });
         })
         .catch(error => console.error('Error updating cart count:', error));
@@ -650,13 +729,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Show success message
-  function showSuccessMessage() {
+  function showSuccessMessage(addedGift) {
     // Create and show a success notification
     const notification = document.createElement('div');
     notification.className = 'cart-notification';
     notification.innerHTML = `
       <div class="notification-content">
         <span>✓ Product added to cart successfully!</span>
+        ${addedGift ? '<span style="opacity:.9">(+ Soft Winter Jacket added)</span>' : ''}
         <button class="notification-close">&times;</button>
       </div>
     `;
@@ -729,8 +809,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% schema %}
 {
-  "name": "Product Grid Hover",
-  "settings": [],
+  "name": "Product Grid 6",
+  "settings": [
+    {
+      "type": "product",
+      "id": "gift_product",
+      "label": "Gift product (auto-add when Black + Medium)",
+      "info": "Select 'Soft Winter Jacket' to auto-add when Black + Medium is chosen. Optional."
+    }
+  ],
   "blocks": [
     {
       "type": "product_1",
@@ -778,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
   "max_blocks": 6,
   "presets": [
     {
-      "name": "Product Grid Hover",
+      "name": "Product Grid 6",
       "category": "Custom"
     }
   ]
