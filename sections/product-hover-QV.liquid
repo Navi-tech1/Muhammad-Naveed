@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const modalClose = document.getElementById('modal-close');
   const modalOverlay = document.querySelector('.modal-overlay');
   const quickViewBtns = document.querySelectorAll('.quick-view-btn');
-  const colorBtns = document.querySelectorAll('.color-btn');
+  // Note: color buttons are rebuilt dynamically per product
   const quickViewForm = document.getElementById('quick-view-form');
   const addToCartBtn = document.getElementById('add-to-cart-btn');
 
@@ -540,13 +540,15 @@ document.addEventListener('DOMContentLoaded', function() {
   modalClose.addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', closeModal);
 
-  // Color selection functionality
-  colorBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      colorBtns.forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
+  function bindColorButtons(container) {
+    const buttons = container.querySelectorAll('.color-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        buttons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
     });
-  });
+  }
 
   // Load product data from Shopify API
   function loadProductData(productHandle) {
@@ -568,6 +570,62 @@ document.addEventListener('DOMContentLoaded', function() {
         // Default the hidden input strictly to a variant id (never the product id)
         const firstVariant = (product.variants || []).find(v => v.available) || (product.variants || [])[0];
         document.getElementById('modal-product-id').value = firstVariant ? String(firstVariant.id) : '';
+        
+        // Dynamically build Color and Size options based on product options/variants
+        try {
+          const colorOptionsEl = document.getElementById('color-options');
+          const sizeSelectEl = document.getElementById('size-select');
+          if (colorOptionsEl && sizeSelectEl && Array.isArray(product.options) && Array.isArray(product.variants)) {
+            // Determine indices for Color and Size
+            const optionNames = product.options.map(o => (o && o.name ? String(o.name).toLowerCase() : ''));
+            const colorIdx = Math.max(0, optionNames.findIndex(n => n === 'color' || n === 'colour'));
+            const sizeIdx = Math.max(0, optionNames.findIndex(n => n === 'size'));
+            
+            const getVariantOption = (variant, idx) => {
+              if (idx === 0) return variant.option1;
+              if (idx === 1) return variant.option2;
+              if (idx === 2) return variant.option3;
+              return undefined;
+            };
+            
+            // Unique values preserving order
+            const colors = [];
+            const sizes = [];
+            for (const v of product.variants) {
+              const c = getVariantOption(v, colorIdx);
+              const s = getVariantOption(v, sizeIdx);
+              if (c && !colors.includes(c)) colors.push(c);
+              if (s && !sizes.includes(s)) sizes.push(s);
+            }
+            
+            // Build color buttons
+            colorOptionsEl.innerHTML = '';
+            colors.forEach((c, i) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'color-btn' + (i === 0 ? ' active' : '');
+              btn.setAttribute('data-color', String(c).toLowerCase());
+              btn.innerHTML = `<span>${c}</span>`;
+              colorOptionsEl.appendChild(btn);
+            });
+            bindColorButtons(colorOptionsEl);
+            
+            // Build size select
+            sizeSelectEl.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Choose your size';
+            sizeSelectEl.appendChild(placeholder);
+            sizes.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = String(s).toLowerCase();
+              opt.textContent = s;
+              sizeSelectEl.appendChild(opt);
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to build dynamic options:', err);
+        }
         
         // Remove loading state
         addToCartBtn.classList.remove('loading');
@@ -714,15 +772,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const hiddenIdInput = document.getElementById('modal-product-id');
     if (hiddenIdInput) hiddenIdInput.value = String(variantIdStr);
 
-    // Prepare items to add to cart
-    const itemsToAdd = [
-      {
-        id: variantIdNum,
-        quantity: 1
-        // Do not pass Color/Size as properties to avoid duplication in cart; variant already encodes options
-      }
-    ];
-    
+    // Prepare primary item
+    const primaryItem = { id: variantIdNum, quantity: 1 };
+
     // Auto-add Soft Winter Jacket if Black + Medium is selected
     const needGift = shouldAutoAddWinterJacket(selectedColor, selectedSize);
     const ensureGiftVariantId = (GIFT_PRODUCT && (GIFT_PRODUCT.variantId || GIFT_PRODUCT.handle))
@@ -730,20 +782,8 @@ document.addEventListener('DOMContentLoaded', function() {
       : Promise.resolve(null);
 
     const addItems = (giftVariantId) => {
-      if (needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId))) {
-        const giftIdNum = Number(giftVariantId);
-        itemsToAdd.push({
-          id: giftIdNum,
-          quantity: 1,
-          properties: {
-            'Auto-added': 'Yes',
-            'Reason': 'Black + Medium variant selected'
-          }
-        });
-      }
-
-      // Add items to cart
-      addToCart(itemsToAdd)
+      // Step 1: add primary item first
+      addToCart([primaryItem])
         .then(response => {
           if (!response.ok) {
             return response.json().then(err => { throw err; });
@@ -751,12 +791,46 @@ document.addEventListener('DOMContentLoaded', function() {
           return response.json();
         })
         .then(() => {
-          updateCartCount();
-          showSuccessMessage(needGift && giftVariantId);
-          closeModal();
+          // Step 2: optionally add gift in a separate call
+          const canAddGift = needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId));
+          if (!canAddGift) {
+            updateCartCount();
+            showSuccessMessage(false);
+            closeModal();
+            return;
+          }
+          const giftIdNum = Number(giftVariantId);
+          return addToCart([
+            {
+              id: giftIdNum,
+              quantity: 1,
+              properties: {
+                'Auto-added': 'Yes',
+                'Reason': 'Black + Medium variant selected'
+              }
+            }
+          ])
+            .then(res => {
+              if (!res.ok) {
+                return res.json().then(err => { throw err; });
+              }
+              return res.json();
+            })
+            .then(() => {
+              updateCartCount();
+              showSuccessMessage(true);
+              closeModal();
+            })
+            .catch(err => {
+              console.error('Gift add failed:', err);
+              // Still report success for the main item
+              updateCartCount();
+              showSuccessMessage(false);
+              closeModal();
+            });
         })
         .catch(error => {
-          console.error('Error adding to cart:', error);
+          console.error('Primary add failed:', error);
           const message = (error && error.description) ? error.description : 'Failed to add product to cart. Please try again.';
           alert(message);
         })
