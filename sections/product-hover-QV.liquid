@@ -710,6 +710,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     const variantIdNum = Number(variantIdStr);
     console.log('[QuickView] Resolved variant id:', variantIdNum, 'color=', selectedColor, 'size=', selectedSize);
+    // Reflect resolved id into the hidden form control so any 3rd-party listeners read the correct value
+    const hiddenIdInput = document.getElementById('modal-product-id');
+    if (hiddenIdInput) hiddenIdInput.value = String(variantIdStr);
 
     // Prepare items to add to cart
     const itemsToAdd = [
