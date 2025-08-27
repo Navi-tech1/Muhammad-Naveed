@@ -800,26 +800,39 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           const giftIdNum = Number(giftVariantId);
-          return addToCart([
-            {
-              id: giftIdNum,
-              quantity: 1,
-              properties: {
-                'Auto-added': 'Yes',
-                'Reason': 'Black + Medium variant selected'
+          // Check if gift is already in cart to avoid duplicates
+          return fetch('/cart.js')
+            .then(r => r.ok ? r.json() : { items: [] })
+            .then(cart => {
+              const exists = Array.isArray(cart.items) && cart.items.some(it => Number(it.id) === giftIdNum);
+              if (exists) {
+                updateCartCount();
+                showSuccessMessage(false);
+                closeModal();
+                return;
               }
-            }
-          ])
-            .then(res => {
-              if (!res.ok) {
-                return res.json().then(err => { throw err; });
-              }
-              return res.json();
-            })
-            .then(() => {
-              updateCartCount();
-              showSuccessMessage(true);
-              closeModal();
+              // Add gift as separate call
+              return addToCart([
+                {
+                  id: giftIdNum,
+                  quantity: 1,
+                  properties: {
+                    'Auto-added': 'Yes',
+                    'Reason': 'Black + Medium variant selected'
+                  }
+                }
+              ])
+                .then(res => {
+                  if (!res.ok) {
+                    return res.json().then(err => { throw err; });
+                  }
+                  return res.json();
+                })
+                .then(() => {
+                  updateCartCount();
+                  showSuccessMessage(true);
+                  closeModal();
+                });
             })
             .catch(err => {
               console.error('Gift add failed:', err);
