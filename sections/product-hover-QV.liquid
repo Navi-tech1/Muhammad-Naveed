@@ -588,7 +588,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-product-description').textContent = productData.description;
         document.getElementById('modal-product-image').src = productData.image;
         document.getElementById('modal-product-image').alt = productData.title;
-        document.getElementById('modal-product-id').value = productData.id;
+        // Do not set a non-variant id; keep empty so submit validation catches it
+        document.getElementById('modal-product-id').value = '';
         
         addToCartBtn.classList.remove('loading');
       });
@@ -707,11 +708,13 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Cannot find a matching variant for your selection.');
       return;
     }
+    const variantIdNum = Number(variantIdStr);
+    console.log('[QuickView] Resolved variant id:', variantIdNum, 'color=', selectedColor, 'size=', selectedSize);
 
     // Prepare items to add to cart
     const itemsToAdd = [
       {
-        id: variantIdStr,
+        id: variantIdNum,
         quantity: 1
         // Do not pass Color/Size as properties to avoid duplication in cart; variant already encodes options
       }
@@ -725,8 +728,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const addItems = (giftVariantId) => {
       if (needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId))) {
+        const giftIdNum = Number(giftVariantId);
         itemsToAdd.push({
-          id: String(giftVariantId),
+          id: giftIdNum,
           quantity: 1,
           properties: {
             'Auto-added': 'Yes',
