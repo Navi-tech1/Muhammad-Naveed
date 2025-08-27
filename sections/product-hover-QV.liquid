@@ -688,6 +688,25 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(() => null);
   }
 
+  // Verify a given gift variant is available for the gift handle; if not, return first available
+  function ensureAvailableGiftVariantId(candidateId, handle) {
+    const idStr = candidateId != null ? String(candidateId) : null;
+    if (!handle) return Promise.resolve(idStr);
+    const encoded = encodeURIComponent(handle);
+    return fetch(`/products/${encoded}.js`)
+      .then(r => r.json())
+      .then(p => {
+        const variants = Array.isArray(p.variants) ? p.variants : [];
+        if (idStr) {
+          const match = variants.find(v => String(v.id) === idStr);
+          if (match && match.available) return idStr;
+        }
+        const available = variants.find(v => v.available);
+        return available ? String(available.id) : null;
+      })
+      .catch(() => idStr);
+  }
+
   // Find variant ID that matches selected Color + Size from the loaded product JSON
   // This function tries multiple matching strategies to cope with different option naming and values (e.g., M vs Medium)
   function getVariantIdForSelection(product, selectedColor, selectedSize) {
@@ -824,19 +843,34 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(() => {
           // Step 2: optionally add gift in a separate call
-          const canAddGift = needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId));
-          console.log('[QuickView] Gift add check:', { canAddGift, giftVariantId });
-          if (!canAddGift) {
+          const preCanAddGift = needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId));
+          console.log('[QuickView] Gift add check (pre-verify):', { preCanAddGift, giftVariantId });
+          if (!preCanAddGift) {
             updateCartCount();
             showSuccessMessage(false);
             closeModal();
             return;
           }
-          const giftIdNum = Number(giftVariantId);
-          // Check if gift is already in cart to avoid duplicates
-          return fetch('/cart.js')
-            .then(r => r.ok ? r.json() : { items: [] })
-            .then(cart => {
+
+          // Ensure gift variant is available for handle (fallback to first available)
+          return ensureAvailableGiftVariantId(giftVariantId, (GIFT_PRODUCT && GIFT_PRODUCT.handle))
+            .then(verifiedGiftId => {
+              if (!verifiedGiftId || !/^[0-9]+$/.test(String(verifiedGiftId))) {
+                console.warn('[QuickView] Gift variant not resolvable/available, skipping');
+                updateCartCount();
+                showSuccessMessage(false);
+                closeModal();
+                return null;
+              }
+              const giftIdNum = Number(verifiedGiftId);
+              // Check if gift is already in cart to avoid duplicates
+              return fetch('/cart.js')
+                .then(r => r.ok ? r.json() : { items: [] })
+                .then(cart => ({ cart, giftIdNum }));
+            })
+            .then(ctx => {
+              if (!ctx) return;
+              const { cart, giftIdNum } = ctx;
               const exists = Array.isArray(cart.items) && cart.items.some(it => Number(it.id) === giftIdNum);
               if (exists) {
                 updateCartCount();
@@ -868,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             })
             .catch(err => {
-              console.error('Gift add failed:', err);
+              console.error('Gift add failed:', err && (err.description || err.message) ? (err.description || err.message) : err);
               // Still report success for the main item
               updateCartCount();
               showSuccessMessage(false);
