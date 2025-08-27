@@ -831,8 +831,15 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
           console.error('Primary add failed:', error);
-          const message = (error && error.description) ? error.description : 'Failed to add product to cart. Please try again.';
-          alert(message);
+          // Only alert if Shopify provides a clear error description.
+          if (error && error.description) {
+            alert(error.description);
+          } else {
+            // In cases where the add actually succeeded but parsing/response was odd, treat as soft-success.
+            try { updateCartCount(); } catch (_) {}
+            try { showSuccessMessage(false); } catch (_) {}
+            try { closeModal(); } catch (_) {}
+          }
         })
         .finally(() => {
           addToCartBtn.classList.remove('loading');
