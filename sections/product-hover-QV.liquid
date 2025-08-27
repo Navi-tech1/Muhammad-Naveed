@@ -565,8 +565,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-product-description').textContent = product.description || 'No description available';
         document.getElementById('modal-product-image').src = product.featured_image || 'https://via.placeholder.com/400x500/f0f0f0/666?text=Product+Image';
         document.getElementById('modal-product-image').alt = product.title;
-        // Default the hidden input to first available variant (actual variant will be resolved on submit)
-        document.getElementById('modal-product-id').value = product.variants[0]?.id || product.id;
+        // Default the hidden input strictly to a variant id (never the product id)
+        const firstVariant = (product.variants || []).find(v => v.available) || (product.variants || [])[0];
+        document.getElementById('modal-product-id').value = firstVariant ? String(firstVariant.id) : '';
         
         // Remove loading state
         addToCartBtn.classList.remove('loading');
@@ -619,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(r => r.json())
       .then(p => {
         const v = (p.variants || []).find(v => v.available) || (p.variants || [])[0];
-        return v ? v.id : null;
+        return v ? String(v.id) : null;
       })
       .catch(() => null);
   }
@@ -679,6 +680,12 @@ document.addEventListener('DOMContentLoaded', function() {
   quickViewForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Ensure product data is loaded
+    if (!currentProductData || !Array.isArray(currentProductData.variants) || currentProductData.variants.length === 0) {
+      alert('Please wait, product is still loading.');
+      return;
+    }
+    
     const selectedColor = document.querySelector('.color-btn.active').getAttribute('data-color');
     const selectedSize = document.getElementById('size-select').value;
     
@@ -693,11 +700,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Resolve the correct variant ID for selected options to avoid adding wrong/invalid variant
     const resolvedVariantId = getVariantIdForSelection(currentProductData, selectedColor, selectedSize) || document.getElementById('modal-product-id').value;
+    const variantIdStr = (resolvedVariantId != null) ? String(resolvedVariantId) : '';
+    if (!/^[0-9]+$/.test(variantIdStr)) {
+      addToCartBtn.classList.remove('loading');
+      addToCartBtn.disabled = false;
+      alert('Cannot find a matching variant for your selection.');
+      return;
+    }
 
     // Prepare items to add to cart
     const itemsToAdd = [
       {
-        id: resolvedVariantId,
+        id: variantIdStr,
         quantity: 1
         // Do not pass Color/Size as properties to avoid duplication in cart; variant already encodes options
       }
@@ -706,13 +720,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-add Soft Winter Jacket if Black + Medium is selected
     const needGift = shouldAutoAddWinterJacket(selectedColor, selectedSize);
     const ensureGiftVariantId = (GIFT_PRODUCT && (GIFT_PRODUCT.variantId || GIFT_PRODUCT.handle))
-      ? (GIFT_PRODUCT.variantId ? Promise.resolve(GIFT_PRODUCT.variantId) : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle))
+      ? (GIFT_PRODUCT.variantId ? Promise.resolve(String(GIFT_PRODUCT.variantId)) : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle))
       : Promise.resolve(null);
 
     const addItems = (giftVariantId) => {
-      if (needGift && giftVariantId) {
+      if (needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId))) {
         itemsToAdd.push({
-          id: giftVariantId,
+          id: String(giftVariantId),
           quantity: 1,
           properties: {
             'Auto-added': 'Yes',
