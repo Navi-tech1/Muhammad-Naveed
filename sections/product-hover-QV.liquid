@@ -675,11 +675,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fetch first available variant ID for a product handle
   function fetchFirstAvailableVariantIdByHandle(handle) {
     if (!handle) return Promise.resolve(null);
-    return fetch(`/products/${handle}.js`)
+    const encoded = encodeURIComponent(handle);
+    console.log('[QuickView] Resolving gift by handle:', handle, 'encoded:', encoded);
+    return fetch(`/products/${encoded}.js`)
       .then(r => r.json())
       .then(p => {
         const v = (p.variants || []).find(v => v.available) || (p.variants || [])[0];
-        return v ? String(v.id) : null;
+        const vid = v ? String(v.id) : null;
+        console.log('[QuickView] Resolved gift variant id from handle:', handle, '=>', vid);
+        return vid;
       })
       .catch(() => null);
   }
