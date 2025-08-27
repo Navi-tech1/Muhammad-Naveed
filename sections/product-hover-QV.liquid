@@ -730,9 +730,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Check if Soft Winter Jacket should be auto-added
   function shouldAutoAddWinterJacket(color, size) {
-    const c = (color || '').toString().trim().toLowerCase();
-    const s = (size || '').toString().trim().toLowerCase();
-    return c === 'black' && (s === 'm' || s === 'medium');
+    const cRaw = (color || '').toString().trim().toLowerCase();
+    const sRaw = (size || '').toString().trim().toLowerCase();
+    // Normalize simple aliases
+    const containsBlack = cRaw.includes('black');
+    const sizeAliases = new Set(['m', 'md', 'med', 'medium']);
+    const isMedium = sizeAliases.has(sRaw) || sRaw.includes('medium');
+    return containsBlack && isMedium;
   }
 
   // Form submission with proper cart functionality
@@ -775,8 +779,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prepare primary item
     const primaryItem = { id: variantIdNum, quantity: 1 };
 
-    // Auto-add Soft Winter Jacket if Black + Medium is selected
-    const needGift = shouldAutoAddWinterJacket(selectedColor, selectedSize);
+    // Determine Black/Medium based on actual variant options (more reliable than UI values)
+    let computedColor = selectedColor;
+    let computedSize = selectedSize;
+    try {
+      const product = currentProductData;
+      const variant = (product && Array.isArray(product.variants)) ? product.variants.find(v => String(v.id) === String(variantIdStr)) : null;
+      if (product && variant && Array.isArray(product.options)) {
+        const optionNames = product.options.map(o => (o && o.name ? String(o.name).toLowerCase() : ''));
+        const colorIdx = Math.max(0, optionNames.findIndex(n => n === 'color' || n === 'colour'));
+        const sizeIdx = Math.max(0, optionNames.findIndex(n => n === 'size'));
+        const getVariantOption = (v, idx) => {
+          if (idx === 0) return v.option1;
+          if (idx === 1) return v.option2;
+          if (idx === 2) return v.option3;
+          return undefined;
+        };
+        computedColor = getVariantOption(variant, colorIdx) || computedColor;
+        computedSize = getVariantOption(variant, sizeIdx) || computedSize;
+      }
+    } catch (e) {
+      console.warn('Failed to compute options from variant:', e);
+    }
+
+    // Auto-add Soft Winter Jacket if Black + Medium is selected (using computed options)
+    const needGift = shouldAutoAddWinterJacket(computedColor, computedSize);
+    console.log('[QuickView] Gift decision:', { selectedColor, selectedSize, computedColor, computedSize, needGift, GIFT_PRODUCT });
     const ensureGiftVariantId = (GIFT_PRODUCT && (GIFT_PRODUCT.variantId || GIFT_PRODUCT.handle))
       ? (GIFT_PRODUCT.variantId ? Promise.resolve(String(GIFT_PRODUCT.variantId)) : fetchFirstAvailableVariantIdByHandle(GIFT_PRODUCT.handle))
       : Promise.resolve(null);
@@ -793,6 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(() => {
           // Step 2: optionally add gift in a separate call
           const canAddGift = needGift && giftVariantId && /^[0-9]+$/.test(String(giftVariantId));
+          console.log('[QuickView] Gift add check:', { canAddGift, giftVariantId });
           if (!canAddGift) {
             updateCartCount();
             showSuccessMessage(false);
