@@ -61,6 +61,8 @@ This prevents hardcoding and avoids 422 errors when the ID is missing.
       gp.title = gp.title || {{ gift_prod.title | json }};
       gp.variantId = gp.variantId || {{ gift_prod.selected_or_first_available_variant.id | json }};
       gp.handle = gp.handle || {{ gift_prod.handle | json }};
+      // Allow explicit override via section setting if provided
+      gp.variantId = gp.variantId || {{ section.settings.gift_variant_id | json }};
       return gp;
     })(window.GIFT_PRODUCT);
   </script>
@@ -71,6 +73,8 @@ This prevents hardcoding and avoids 422 errors when the ID is missing.
       gp = gp || {};
       gp.title = gp.title || 'Soft Winter Jacket';
       gp.handle = gp.handle || {{ section.settings.gift_product_handle | json }};
+      // Optional explicit override if handle is not reliable
+      gp.variantId = gp.variantId || {{ section.settings.gift_variant_id | json }};
       return gp;
     })(window.GIFT_PRODUCT);
   </script>
@@ -1050,6 +1054,12 @@ document.addEventListener('DOMContentLoaded', function() {
       "id": "gift_product_handle",
       "label": "Gift product handle (fallback)",
       "info": "If product above is not set, provide handle e.g. soft-winter-jacket"
+    },
+    {
+      "type": "text",
+      "id": "gift_variant_id",
+      "label": "Gift variant ID override (optional)",
+      "info": "Explicit variant ID to add as gift. Use numbers only."
     }
   ],
   "blocks": [
