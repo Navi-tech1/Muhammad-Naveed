@@ -668,6 +668,7 @@ document.addEventListener('DOMContentLoaded', function() {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'same-origin',
       body: JSON.stringify({ items: items })
     });
   }
@@ -677,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!handle) return Promise.resolve(null);
     const encoded = encodeURIComponent(handle);
     console.log('[QuickView] Resolving gift by handle:', handle, 'encoded:', encoded);
-    return fetch(`/products/${encoded}.js`)
+    return fetch(`/products/${encoded}.js`, { credentials: 'same-origin' })
       .then(r => r.json())
       .then(p => {
         const v = (p.variants || []).find(v => v.available) || (p.variants || [])[0];
